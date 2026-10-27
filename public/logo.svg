@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#0B0F19" />
+      <stop offset="50%" stopColor="#1E1B4B" />
+      <stop offset="100%" stopColor="#0F172A" />
+    </linearGradient>
+
+    <!-- Ring Gradient -->
+    <linearGradient id="ringGrad" x1="60" y1="60" x2="452" y2="452" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#6366F1" />
+      <stop offset="45%" stopColor="#818CF8" />
+      <stop offset="75%" stopColor="#06B6D4" />
+      <stop offset="100%" stopColor="#10B981" />
+    </linearGradient>
+
+    <!-- Chart Line Gradient -->
+    <linearGradient id="chartGrad" x1="120" y1="360" x2="380" y2="150" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#818CF8" />
+      <stop offset="60%" stopColor="#38BDF8" />
+      <stop offset="100%" stopColor="#34D399" />
+    </linearGradient>
+
+    <!-- Area Fill Gradient -->
+    <linearGradient id="areaGrad" x1="256" y1="180" x2="256" y2="380" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#6366F1" stop-opacity="0.45" />
+      <stop offset="100%" stopColor="#10B981" stop-opacity="0.0" />
+    </linearGradient>
+
+    <!-- Sparkle Glow -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <filter id="subtleGlow" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Squircle Base Container -->
+  <rect x="16" y="16" width="480" height="480" rx="112" fill="url(#bgGrad)" stroke="#312E81" stroke-width="6" />
+
+  <!-- Outer Ambient Glow Ring -->
+  <circle cx="256" cy="256" r="172" stroke="url(#ringGrad)" stroke-width="3" stroke-opacity="0.3" stroke-dasharray="16 10" />
+
+  <!-- Main Optical Lens Outer Ring -->
+  <circle cx="256" cy="256" r="150" stroke="url(#ringGrad)" stroke-width="16" filter="url(#subtleGlow)" />
+
+  <!-- Lens Glass Inner Shimmer -->
+  <circle cx="256" cy="256" r="136" fill="#1E1B4B" fill-opacity="0.4" />
+
+  <!-- Lens Focus Reticle / Crosshair Marks -->
+  <line x1="256" y1="84" x2="256" y2="114" stroke="#818CF8" stroke-width="5" stroke-linecap="round" opacity="0.8" />
+  <line x1="256" y1="398" x2="256" y2="428" stroke="#10B981" stroke-width="5" stroke-linecap="round" opacity="0.8" />
+  <line x1="84" y1="256" x2="114" y2="256" stroke="#6366F1" stroke-width="5" stroke-linecap="round" opacity="0.8" />
+  <line x1="398" y1="256" x2="428" y2="256" stroke="#06B6D4" stroke-width="5" stroke-linecap="round" opacity="0.8" />
+
+  <!-- Area under curve inside lens -->
+  <path d="M 140 350 Q 220 340, 270 270 T 365 155 L 365 350 Z" fill="url(#areaGrad)" />
+
+  <!-- Compounding Exponential Financial Growth Curve -->
+  <path d="M 140 350 Q 220 340, 270 270 T 365 155" fill="none" stroke="url(#chartGrad)" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)" />
+
+  <!-- Milestone Nodes along the curve -->
+  <circle cx="140" cy="350" r="10" fill="#818CF8" stroke="#0B0F19" stroke-width="4" />
+  <circle cx="235" cy="320" r="8" fill="#38BDF8" stroke="#0B0F19" stroke-width="3" />
+  <circle cx="295" cy="235" r="9" fill="#2DD4BF" stroke="#0B0F19" stroke-width="3.5" />
+
+  <!-- Focal Spark (Clarity / Peak Return Star) -->
+  <g transform="translate(365, 155)" filter="url(#glow)">
+    <circle cx="0" cy="0" r="18" fill="#FFFFFF" />
+    <path d="M 0 -28 Q 0 0, 28 0 Q 0 0, 0 28 Q 0 0, -28 0 Q 0 0, 0 -28 Z" fill="#34D399" />
+    <circle cx="0" cy="0" r="8" fill="#FFFFFF" />
+  </g>
+</svg>

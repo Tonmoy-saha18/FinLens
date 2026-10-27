@@ -1,4 +1,4 @@
-import { Sun, Moon, ShieldCheck, Sparkles, TrendingUp, Swords, Calculator, Share2, Printer } from 'lucide-react';
+import { Sun, Moon, ShieldCheck, Sparkles, Swords, Calculator, Share2, Printer } from 'lucide-react';
 import { useSettings } from '@/state/settings';
 import { useScenarios } from '@/state/scenarios';
 import { Button } from '@/components/ui/button';
@@ -23,9 +23,13 @@ export function Navbar() {
         <div className="flex items-center gap-3">
           <div
             onClick={() => setActiveView('single')}
-            className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-tr from-primary to-chart-5 text-primary-foreground shadow-md shadow-primary/20 cursor-pointer"
+            className="relative flex items-center justify-center cursor-pointer group"
           >
-            <TrendingUp className="w-5 h-5" />
+            <img
+              src="./favicon.svg"
+              alt="FinLens Logo"
+              className="w-10 h-10 rounded-xl shadow-md shadow-primary/25 group-hover:scale-105 transition-all duration-200"
+            />
             <span className="absolute -bottom-1 -right-1 flex h-3 w-3">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
