@@ -1,0 +1,163 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 99%;
+    --foreground: 224 20% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 224 20% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 20% 10%;
+    --primary: 245 58% 51%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 224 20% 18%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
+    --accent: 220 14% 96%;
+    --accent-foreground: 224 20% 18%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 245 58% 51%;
+    --radius: 0.75rem;
+
+    /* Chart palette — vibrant, accessible */
+    --chart-1: 245 58% 51%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 35 92% 55%;
+    --chart-4: 340 65% 55%;
+    --chart-5: 200 75% 50%;
+  }
+
+  .dark {
+    --background: 224 25% 6%;
+    --foreground: 210 20% 95%;
+    --card: 224 25% 8%;
+    --card-foreground: 210 20% 95%;
+    --popover: 224 25% 8%;
+    --popover-foreground: 210 20% 95%;
+    --primary: 245 65% 65%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 224 20% 14%;
+    --secondary-foreground: 210 20% 90%;
+    --muted: 224 20% 14%;
+    --muted-foreground: 220 10% 55%;
+    --accent: 224 20% 14%;
+    --accent-foreground: 210 20% 90%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 224 18% 16%;
+    --input: 224 18% 16%;
+    --ring: 245 65% 65%;
+
+    --chart-1: 245 65% 65%;
+    --chart-2: 160 55% 50%;
+    --chart-3: 35 90% 60%;
+    --chart-4: 340 60% 60%;
+    --chart-5: 200 70% 55%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/20 rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/40;
+  }
+}
+
+@layer components {
+  /* Glass card effect */
+  .glass-card {
+    @apply bg-card/80 backdrop-blur-xl border border-border/50 shadow-lg;
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary via-chart-5 to-chart-2 bg-clip-text text-transparent;
+  }
+
+  /* KPI number animation */
+  .kpi-value {
+    @apply font-mono text-2xl font-bold tracking-tight tabular-nums;
+  }
+
+  /* Subtle hover lift */
+  .hover-lift {
+    @apply transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md;
+  }
+
+  /* Input glow on focus */
+  .input-glow:focus-within {
+    @apply ring-2 ring-primary/20 border-primary/50;
+  }
+}
+
+@layer utilities {
+  .animation-delay-100 {
+    animation-delay: 100ms;
+  }
+  .animation-delay-200 {
+    animation-delay: 200ms;
+  }
+  .animation-delay-300 {
+    animation-delay: 300ms;
+  }
+  .animation-delay-400 {
+    animation-delay: 400ms;
+  }
+}
+
+/* Print & PDF Summary Export Styles */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  .no-print,
+  button,
+  input[type="range"],
+  .fixed {
+    display: none !important;
+  }
+
+  .glass-card {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+
+  /* Expand all tables for full PDF printing */
+  .print-expand {
+    display: block !important;
+  }
+}
