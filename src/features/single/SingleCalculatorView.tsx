@@ -58,11 +58,7 @@ export function SingleCalculatorView() {
         {/* Real-time UX indicator */}
         <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
           <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span>Instant Reactive Engine</span>
-          <span className="hidden md:inline-block text-border">•</span>
-          <span className="hidden md:inline-block text-[11px] font-mono bg-muted/80 px-2 py-0.5 rounded text-muted-foreground">
-            Zero &quot;Calculate&quot; Button
-          </span>
+          <span>Live Calculation</span>
         </div>
       </div>
 

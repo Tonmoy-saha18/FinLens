@@ -52,15 +52,15 @@ export function ScenarioArenaView() {
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Battle-test up to 3 financial schemes side-by-side with overlaid trajectory curves.
+            Compare and evaluate up to 3 financial schemes side-by-side with overlaid trajectory curves.
           </p>
         </div>
 
-        {/* Quick Battle Presets */}
+        {/* Quick Comparison Presets */}
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
             <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-            Battles:
+            Scenarios:
           </span>
           <Button
             variant="outline"

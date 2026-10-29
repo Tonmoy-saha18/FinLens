@@ -43,7 +43,8 @@ export function DpsCalculator() {
   // Inputs
   const [monthlyInstallment, setMonthlyInstallment] = useState<number>(5000);
   const [annualRate, setAnnualRate] = useState<number>(9.5);
-  const [tenureYears, setTenureYears] = useState<number>(10);
+  const [tenureMonths, setTenureMonths] = useState<number>(120);
+  const [tenureUnit, setTenureUnit] = useState<'years' | 'months'>('years');
   const [compounding, setCompounding] = useState<CompoundingFrequency>('monthly');
 
   // Reality adjustments
@@ -58,17 +59,20 @@ export function DpsCalculator() {
   const applyPreset = (p: DpsPreset) => {
     setMonthlyInstallment(p.monthly);
     setAnnualRate(p.rate);
-    setTenureYears(p.years);
+    setTenureMonths(p.years * 12);
     setCompounding(p.compounding);
   };
 
   const handlePin = () => {
+    const tenureDisplay = tenureUnit === 'years'
+      ? `${(tenureMonths / 12).toFixed(1)} yrs`
+      : `${tenureMonths} mo`;
     pinScenario({
-      name: `DPS ${formatShort(monthlyInstallment)}/mo (${tenureYears}yr)`,
+      name: `DPS ${formatShort(monthlyInstallment)}/mo (${tenureDisplay})`,
       type: 'dps',
       params: {
         Monthly: formatShort(monthlyInstallment),
-        Tenure: `${tenureYears} yrs`,
+        Tenure: tenureDisplay,
         Rate: `${annualRate}%`,
         Compounding: compounding,
       },
@@ -81,13 +85,13 @@ export function DpsCalculator() {
     return calculateDps({
       monthlyInstallment: new Decimal(monthlyInstallment),
       annualRatePct: new Decimal(annualRate),
-      tenureYears,
+      tenureYears: tenureMonths / 12,
       compounding,
       taxPct: new Decimal(taxPct),
       annualFee: new Decimal(annualFee),
       inflationPct: new Decimal(inflationPct),
     });
-  }, [monthlyInstallment, annualRate, tenureYears, compounding, taxPct, annualFee, inflationPct]);
+  }, [monthlyInstallment, annualRate, tenureMonths, compounding, taxPct, annualFee, inflationPct]);
 
   // Wealth multiplier
   const multiplier = useMemo(() => {
@@ -243,10 +247,11 @@ export function DpsCalculator() {
               label="Monthly Installment"
               value={monthlyInstallment}
               onChange={setMonthlyInstallment}
-              min={500}
-              max={100000}
+              min={100}
+              max={200000}
               step={500}
               prefix={symbol}
+              hint="Supports 5k, 25k, etc."
             />
 
             <DualSliderInput
@@ -254,8 +259,8 @@ export function DpsCalculator() {
               label="Annual Interest Rate"
               value={annualRate}
               onChange={setAnnualRate}
-              min={1.0}
-              max={20.0}
+              min={0.1}
+              max={30.0}
               step={0.1}
               unit="%"
               decimals={1}
@@ -263,13 +268,22 @@ export function DpsCalculator() {
 
             <DualSliderInput
               id="dps-tenure"
-              label="Tenure (Years)"
-              value={tenureYears}
-              onChange={setTenureYears}
-              min={1}
-              max={25}
-              step={1}
-              unit="yrs"
+              label={tenureUnit === 'years' ? `Tenure (${tenureMonths} mo)` : `Tenure (${(tenureMonths / 12).toFixed(1)} yrs)`}
+              value={tenureUnit === 'years' ? parseFloat((tenureMonths / 12).toFixed(2)) : tenureMonths}
+              onChange={(v) => {
+                const months = tenureUnit === 'years' ? Math.max(1, Math.round(v * 12)) : Math.max(1, Math.round(v));
+                setTenureMonths(months);
+              }}
+              min={tenureUnit === 'years' ? 0.5 : 1}
+              max={tenureUnit === 'years' ? 30 : 360}
+              step={tenureUnit === 'years' ? 0.5 : 1}
+              unit={tenureUnit === 'years' ? 'yr' : 'mo'}
+              decimals={tenureUnit === 'years' ? 1 : 0}
+              unitToggle={{
+                current: tenureUnit,
+                options: ['Years', 'Months'],
+                onToggle: (u) => setTenureUnit(u.toLowerCase() as 'years' | 'months'),
+              }}
             />
 
             {/* Compounding frequency */}
@@ -412,7 +426,7 @@ export function DpsCalculator() {
           subtitle={showAnnualOnly ? 'Displaying yearly summary milestones' : 'Displaying complete month-by-month trajectory'}
           columns={tableColumns}
           data={tableData}
-          csvFilename={`dps_schedule_${monthlyInstallment}mo_${tenureYears}yrs.csv`}
+          csvFilename={`dps_schedule_${monthlyInstallment}mo_${tenureMonths}m.csv`}
         />
       </div>
     </div>

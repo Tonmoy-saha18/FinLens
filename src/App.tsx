@@ -30,15 +30,15 @@ function AppContent() {
             <div className="flex flex-wrap items-center gap-2 text-xs">
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-card border border-border/60 shadow-sm text-muted-foreground font-medium">
                 <Lock className="w-3.5 h-3.5 text-emerald-500" />
-                <span>100% Client-Side</span>
+                <span>Privacy First</span>
               </div>
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-card border border-border/60 shadow-sm text-muted-foreground font-medium">
                 <Cpu className="w-3.5 h-3.5 text-indigo-500" />
-                <span>decimal.js Math</span>
+                <span>Bank-Grade Precision</span>
               </div>
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-card border border-border/60 shadow-sm text-muted-foreground font-medium">
                 <Eye className="w-3.5 h-3.5 text-amber-500" />
-                <span>Inflation Reality</span>
+                <span>Inflation-Adjusted</span>
               </div>
             </div>
           </div>
@@ -61,9 +61,7 @@ function AppContent() {
             <span>FinLens operates 100% in your browser. Zero tracking. Zero remote calculation.</span>
           </div>
           <div className="flex items-center gap-4 text-muted-foreground/80 font-mono text-[11px]">
-            <span>Milestone 3: The Scenario Arena</span>
-            <span>•</span>
-            <span>React 19 + TypeScript + decimal.js</span>
+            <span>FinLens • Intelligent Financial Decision Engine</span>
           </div>
         </div>
       </footer>

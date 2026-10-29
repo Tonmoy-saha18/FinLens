@@ -44,6 +44,7 @@ export function FdrCalculator() {
   const [principal, setPrincipal] = useState<number>(100000);
   const [annualRate, setAnnualRate] = useState<number>(9.5);
   const [tenureMonths, setTenureMonths] = useState<number>(12);
+  const [tenureUnit, setTenureUnit] = useState<'months' | 'years'>('months');
   const [compounding, setCompounding] = useState<CompoundingFrequency>('monthly');
 
   // Reality adjustments
@@ -198,10 +199,11 @@ export function FdrCalculator() {
               label="Deposit Principal"
               value={principal}
               onChange={setPrincipal}
-              min={10000}
+              min={1000}
               max={10000000}
-              step={10000}
+              step={1000}
               prefix={symbol}
+              hint="Supports 50k, 2.5L, 1Cr, etc."
             />
 
             <DualSliderInput
@@ -209,8 +211,8 @@ export function FdrCalculator() {
               label="Annual Interest Rate"
               value={annualRate}
               onChange={setAnnualRate}
-              min={1.0}
-              max={20.0}
+              min={0.1}
+              max={30.0}
               step={0.1}
               unit="%"
               decimals={1}
@@ -218,13 +220,22 @@ export function FdrCalculator() {
 
             <DualSliderInput
               id="fdr-tenure"
-              label={`Tenure (${(tenureMonths / 12).toFixed(1)} yrs)`}
-              value={tenureMonths}
-              onChange={setTenureMonths}
-              min={1}
-              max={120}
-              step={1}
-              unit="mo"
+              label={tenureUnit === 'years' ? `Tenure (${tenureMonths} mo)` : `Tenure (${(tenureMonths / 12).toFixed(1)} yrs)`}
+              value={tenureUnit === 'years' ? parseFloat((tenureMonths / 12).toFixed(2)) : tenureMonths}
+              onChange={(v) => {
+                const months = tenureUnit === 'years' ? Math.max(1, Math.round(v * 12)) : Math.max(1, Math.round(v));
+                setTenureMonths(months);
+              }}
+              min={tenureUnit === 'years' ? 0.5 : 1}
+              max={tenureUnit === 'years' ? 15 : 180}
+              step={tenureUnit === 'years' ? 0.5 : 1}
+              unit={tenureUnit === 'years' ? 'yr' : 'mo'}
+              decimals={tenureUnit === 'years' ? 1 : 0}
+              unitToggle={{
+                current: tenureUnit,
+                options: ['Months', 'Years'],
+                onToggle: (u) => setTenureUnit(u.toLowerCase() as 'months' | 'years'),
+              }}
             />
 
             {/* Compounding frequency selector */}

@@ -54,7 +54,7 @@ export function calculateDps(input: DpsInput): DpsResult {
     throw new Error('Tax percentage must be >= 0 and < 100');
   }
 
-  const totalMonths = tenureYears * 12;
+  const totalMonths = Math.max(1, Math.round(tenureYears * 12));
   const rate = annualRatePct.div(100);
   const taxRate = taxPct.div(100);
   const inflationRate = inflationPct.div(100);

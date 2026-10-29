@@ -71,6 +71,7 @@ export function EmiCalculator() {
   const [loanPrincipal, setLoanPrincipal] = useState<number>(5000000);
   const [annualRate, setAnnualRate] = useState<number>(9.0);
   const [tenureMonths, setTenureMonths] = useState<number>(240);
+  const [tenureUnit, setTenureUnit] = useState<'years' | 'months'>('years');
   const [extraMonthly, setExtraMonthly] = useState<number>(5000);
   const [yearlyLump, setYearlyLump] = useState<number>(50000);
 
@@ -253,10 +254,11 @@ export function EmiCalculator() {
               label="Loan Principal"
               value={loanPrincipal}
               onChange={setLoanPrincipal}
-              min={100000}
-              max={20000000}
-              step={50000}
+              min={10000}
+              max={30000000}
+              step={10000}
               prefix={symbol}
+              hint="Supports 50k, 50L, 1.5Cr, etc."
             />
 
             <DualSliderInput
@@ -264,8 +266,8 @@ export function EmiCalculator() {
               label="Annual Interest Rate"
               value={annualRate}
               onChange={setAnnualRate}
-              min={3.0}
-              max={24.0}
+              min={1.0}
+              max={30.0}
               step={0.1}
               unit="%"
               decimals={1}
@@ -273,13 +275,22 @@ export function EmiCalculator() {
 
             <DualSliderInput
               id="emi-tenure"
-              label={`Loan Tenure (${(tenureMonths / 12).toFixed(1)} yrs)`}
-              value={tenureMonths}
-              onChange={setTenureMonths}
-              min={6}
-              max={360}
-              step={6}
-              unit="mo"
+              label={tenureUnit === 'years' ? `Loan Tenure (${tenureMonths} mo)` : `Loan Tenure (${(tenureMonths / 12).toFixed(1)} yrs)`}
+              value={tenureUnit === 'years' ? parseFloat((tenureMonths / 12).toFixed(1)) : tenureMonths}
+              onChange={(v) => {
+                const months = tenureUnit === 'years' ? Math.max(1, Math.round(v * 12)) : Math.max(1, Math.round(v));
+                setTenureMonths(months);
+              }}
+              min={tenureUnit === 'years' ? 1 : 6}
+              max={tenureUnit === 'years' ? 35 : 420}
+              step={tenureUnit === 'years' ? 0.5 : 1}
+              unit={tenureUnit === 'years' ? 'yr' : 'mo'}
+              decimals={tenureUnit === 'years' ? 1 : 0}
+              unitToggle={{
+                current: tenureUnit,
+                options: ['Years', 'Months'],
+                onToggle: (u) => setTenureUnit(u.toLowerCase() as 'years' | 'months'),
+              }}
             />
           </div>
 
@@ -304,9 +315,10 @@ export function EmiCalculator() {
               value={extraMonthly}
               onChange={setExtraMonthly}
               min={0}
-              max={50000}
+              max={100000}
               step={500}
               prefix={symbol}
+              hint="Supports 5k, 10k, etc."
             />
 
             <DualSliderInput
@@ -315,9 +327,10 @@ export function EmiCalculator() {
               value={yearlyLump}
               onChange={setYearlyLump}
               min={0}
-              max={500000}
-              step={5000}
+              max={1000000}
+              step={1000}
               prefix={symbol}
+              hint="Supports 50k, 1L, etc."
             />
 
             <p className="text-[11px] text-muted-foreground italic">
