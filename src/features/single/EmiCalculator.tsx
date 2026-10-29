@@ -7,6 +7,7 @@ import {
   CalendarCheck,
   CheckCircle2,
   AlertCircle,
+  Table,
 } from 'lucide-react';
 import { calculateEmi } from '@/engine/emi';
 import { DualSliderInput } from '@/components/controls/DualSliderInput';
@@ -75,8 +76,9 @@ export function EmiCalculator() {
   const [extraMonthly, setExtraMonthly] = useState<number>(5000);
   const [yearlyLump, setYearlyLump] = useState<number>(50000);
 
-  // Table display filter
+  // Table display filter & view mode
   const [showAnnualOnly, setShowAnnualOnly] = useState<boolean>(true);
+  const [viewMode, setViewMode] = useState<'visuals' | 'table'>('visuals');
 
   const applyPreset = (p: EmiPreset) => {
     setLoanPrincipal(p.principal);
@@ -340,8 +342,50 @@ export function EmiCalculator() {
         </div>
 
         {/* Right Column: Results & Visualizations (7 cols) */}
-        <div className="lg:col-span-7 space-y-6">
-          {/* KPI Cards Row */}
+        <div className="lg:col-span-7 space-y-5">
+          {/* View Mode Switcher Header */}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-1 p-1 bg-muted/60 rounded-xl border border-border/60 text-xs font-semibold">
+              <button
+                onClick={() => setViewMode('visuals')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                  viewMode === 'visuals'
+                    ? 'bg-background text-foreground shadow-sm font-bold text-primary'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <CreditCard className="w-3.5 h-3.5" />
+                <span>Loan Analytics</span>
+              </button>
+              <button
+                onClick={() => setViewMode('table')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                  viewMode === 'table'
+                    ? 'bg-background text-foreground shadow-sm font-bold text-primary'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Table className="w-3.5 h-3.5" />
+                <span>Amortization Schedule ({tableData.length})</span>
+              </button>
+            </div>
+
+            {viewMode === 'visuals' && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  const el = document.getElementById('emi-schedule-table');
+                  el?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="h-8 gap-1.5 text-xs text-primary font-semibold hover:bg-primary/10"
+              >
+                <span>Jump to Schedule ↓</span>
+              </Button>
+            )}
+          </div>
+
+          {/* KPI Cards Row (Always visible for at-a-glance decision making) */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <KpiCard
               label="Monthly EMI"
@@ -396,66 +440,86 @@ export function EmiCalculator() {
             </div>
           )}
 
-          {/* Amortization Chart */}
-          <div className="glass-card rounded-2xl p-5 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="text-sm font-bold text-foreground">Monthly Payment Composition</h4>
-                <p className="text-xs text-muted-foreground">Principal portion (green) vs Interest portion (pink) vs Prepayment (purple)</p>
-              </div>
-            </div>
+          {viewMode === 'visuals' ? (
+            <>
+              {/* Amortization Chart */}
+              <div className="glass-card rounded-2xl p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-bold text-foreground">Monthly Payment Composition</h4>
+                    <p className="text-xs text-muted-foreground">Principal portion (green) vs Interest portion (pink) vs Prepayment (purple)</p>
+                  </div>
+                </div>
 
-            <AmortizationChart
-              data={chartData}
-              formatValue={(v) => formatMoney(v)}
-            />
-          </div>
-
-          {/* Donut breakdown */}
-          <div className="glass-card rounded-2xl p-5">
-            <div className="flex items-center justify-between mb-2">
-              <div>
-                <h4 className="text-sm font-bold text-foreground">Total Cost of Loan</h4>
-                <p className="text-xs text-muted-foreground">Principal Borrowed vs Total Interest Paid</p>
+                <AmortizationChart
+                  data={chartData}
+                  formatValue={(v) => formatMoney(v)}
+                />
               </div>
-            </div>
-            <BreakdownDonut
-              data={donutData}
-              centerLabel="Total Outflow"
-              centerValue={formatShort(result.totalInterestWithPrepayment.add(loanPrincipal))}
-              formatValue={(v) => formatMoney(v)}
+
+              {/* Donut breakdown */}
+              <div className="glass-card rounded-2xl p-5">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <h4 className="text-sm font-bold text-foreground">Total Cost of Loan</h4>
+                    <p className="text-xs text-muted-foreground">Principal Borrowed vs Total Interest Paid</p>
+                  </div>
+                </div>
+                <BreakdownDonut
+                  data={donutData}
+                  centerLabel="Total Outflow"
+                  centerValue={formatShort(result.totalInterestWithPrepayment.add(loanPrincipal))}
+                  formatValue={(v) => formatMoney(v)}
+                />
+              </div>
+            </>
+          ) : (
+            /* Direct Inline Schedule Table in main view */
+            <ScheduleTable
+              id="emi-schedule-table-direct"
+              title="Loan Amortization Schedule"
+              subtitle={
+                showAnnualOnly
+                  ? 'Displaying yearly summary milestones'
+                  : 'Displaying complete month-by-month principal & interest schedule'
+              }
+              columns={tableColumns}
+              data={tableData}
+              csvFilename={`emi_amortization_${loanPrincipal}_${tenureMonths}mo.csv`}
+              defaultExpanded={true}
+              filterSlot={
+                <div className="flex items-center gap-1 bg-muted/60 p-0.5 rounded-lg border border-border/60 text-[11px]">
+                  <button
+                    onClick={() => setShowAnnualOnly(true)}
+                    className={`px-2.5 py-1 rounded-md font-semibold transition-all ${
+                      showAnnualOnly
+                        ? 'bg-primary text-primary-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    Annual Milestones
+                  </button>
+                  <button
+                    onClick={() => setShowAnnualOnly(false)}
+                    className={`px-2.5 py-1 rounded-md font-semibold transition-all ${
+                      !showAnnualOnly
+                        ? 'bg-primary text-primary-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    All {result.schedule.length} Mo
+                  </button>
+                </div>
+              }
             />
-          </div>
+          )}
         </div>
       </div>
 
-      {/* Expandable Schedule Table */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-end gap-2 text-xs">
-          <span className="text-muted-foreground">Filter Table View:</span>
-          <button
-            onClick={() => setShowAnnualOnly(true)}
-            className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
-              showAnnualOnly
-                ? 'bg-primary text-primary-foreground font-semibold'
-                : 'bg-muted text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            Annual Milestones
-          </button>
-          <button
-            onClick={() => setShowAnnualOnly(false)}
-            className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
-              !showAnnualOnly
-                ? 'bg-primary text-primary-foreground font-semibold'
-                : 'bg-muted text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            All {result.schedule.length} Months
-          </button>
-        </div>
-
+      {/* Bottom Schedule Table (Visible and expanded by default when in Visuals mode) */}
+      {viewMode === 'visuals' && (
         <ScheduleTable
+          id="emi-schedule-table"
           title="Loan Amortization Schedule"
           subtitle={
             showAnnualOnly
@@ -465,8 +529,33 @@ export function EmiCalculator() {
           columns={tableColumns}
           data={tableData}
           csvFilename={`emi_amortization_${loanPrincipal}_${tenureMonths}mo.csv`}
+          defaultExpanded={true}
+          filterSlot={
+            <div className="flex items-center gap-1 bg-muted/60 p-0.5 rounded-lg border border-border/60 text-[11px]">
+              <button
+                onClick={() => setShowAnnualOnly(true)}
+                className={`px-2.5 py-1 rounded-md font-semibold transition-all ${
+                  showAnnualOnly
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Annual Milestones
+              </button>
+              <button
+                onClick={() => setShowAnnualOnly(false)}
+                className={`px-2.5 py-1 rounded-md font-semibold transition-all ${
+                  !showAnnualOnly
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                All {result.schedule.length} Mo
+              </button>
+            </div>
+          }
         />
-      </div>
+      )}
     </div>
   );
 }

@@ -7,6 +7,7 @@ import {
   Receipt,
   Sparkles,
   Layers,
+  Table,
 } from 'lucide-react';
 import { calculateFdr } from '@/engine/fdr';
 import { type CompoundingFrequency } from '@/engine/types';
@@ -51,6 +52,9 @@ export function FdrCalculator() {
   const [taxPct, setTaxPct] = useState<number>(10.0);
   const [annualFee, setAnnualFee] = useState<number>(0);
   const [inflationPct, setInflationPct] = useState<number>(6.0);
+
+  // View toggle: Visual analytics vs Inline schedule table
+  const [viewMode, setViewMode] = useState<'visuals' | 'table'>('visuals');
 
   // Apply preset
   const applyPreset = (preset: FdrPreset) => {
@@ -274,8 +278,50 @@ export function FdrCalculator() {
         </div>
 
         {/* Right column: Results & Visualizations (7 cols) */}
-        <div className="lg:col-span-7 space-y-6">
-          {/* KPI Cards Row */}
+        <div className="lg:col-span-7 space-y-5">
+          {/* View Mode Switcher Header */}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-1 p-1 bg-muted/60 rounded-xl border border-border/60 text-xs font-semibold">
+              <button
+                onClick={() => setViewMode('visuals')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                  viewMode === 'visuals'
+                    ? 'bg-background text-foreground shadow-sm font-bold text-primary'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <TrendingUp className="w-3.5 h-3.5" />
+                <span>Visual Analytics</span>
+              </button>
+              <button
+                onClick={() => setViewMode('table')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                  viewMode === 'table'
+                    ? 'bg-background text-foreground shadow-sm font-bold text-primary'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Table className="w-3.5 h-3.5" />
+                <span>Progression Schedule ({result.breakdown.length})</span>
+              </button>
+            </div>
+
+            {viewMode === 'visuals' && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  const el = document.getElementById('fdr-schedule-table');
+                  el?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="h-8 gap-1.5 text-xs text-primary font-semibold hover:bg-primary/10"
+              >
+                <span>Jump to Schedule ↓</span>
+              </Button>
+            )}
+          </div>
+
+          {/* KPI Cards Row (Always visible for at-a-glance decision making) */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <KpiCard
               label="Net Maturity"
@@ -304,48 +350,67 @@ export function FdrCalculator() {
             />
           </div>
 
-          {/* Charts container */}
-          <div className="glass-card rounded-2xl p-5 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="text-sm font-bold text-foreground">Wealth Trajectory</h4>
-                <p className="text-xs text-muted-foreground">Principal vs Net Value vs Inflation Discount</p>
-              </div>
-            </div>
+          {viewMode === 'visuals' ? (
+            <>
+              {/* Charts container */}
+              <div className="glass-card rounded-2xl p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-bold text-foreground">Wealth Trajectory</h4>
+                    <p className="text-xs text-muted-foreground">Principal vs Net Value vs Inflation Discount</p>
+                  </div>
+                </div>
 
-            <GrowthCurveChart
-              data={growthData}
-              formatValue={(v: number) => formatMoney(v)}
-              formatYAxis={(v: number) => formatShort(v)}
-            />
-          </div>
-
-          {/* Donut breakdown */}
-          <div className="glass-card rounded-2xl p-5">
-            <div className="flex items-center justify-between mb-2">
-              <div>
-                <h4 className="text-sm font-bold text-foreground">Maturity Breakdown</h4>
-                <p className="text-xs text-muted-foreground">Principal vs Net Earnings vs Deductions</p>
+                <GrowthCurveChart
+                  data={growthData}
+                  formatValue={(v: number) => formatMoney(v)}
+                  formatYAxis={(v: number) => formatShort(v)}
+                />
               </div>
-            </div>
-            <BreakdownDonut
-              data={donutData}
-              centerLabel="Net Maturity"
-              centerValue={formatShort(result.netMaturity)}
-              formatValue={(v) => formatMoney(v)}
+
+              {/* Donut breakdown */}
+              <div className="glass-card rounded-2xl p-5">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <h4 className="text-sm font-bold text-foreground">Maturity Breakdown</h4>
+                    <p className="text-xs text-muted-foreground">Principal vs Net Earnings vs Deductions</p>
+                  </div>
+                </div>
+                <BreakdownDonut
+                  data={donutData}
+                  centerLabel="Net Maturity"
+                  centerValue={formatShort(result.netMaturity)}
+                  formatValue={(v) => formatMoney(v)}
+                />
+              </div>
+            </>
+          ) : (
+            /* Direct Inline Schedule Table in main view */
+            <ScheduleTable
+              id="fdr-schedule-table-direct"
+              title="FDR Compounding Schedule"
+              subtitle="Detailed breakdown showing growth, tax deduction, and inflation discounting"
+              columns={tableColumns}
+              data={result.breakdown}
+              csvFilename={`fdr_schedule_${principal}_${annualRate}pct.csv`}
+              defaultExpanded={true}
             />
-          </div>
+          )}
         </div>
       </div>
 
-      {/* Expandable Schedule Table */}
-      <ScheduleTable
-        title="FDR Compounding Schedule"
-        subtitle="Detailed breakdown showing growth, tax deduction, and inflation discounting"
-        columns={tableColumns}
-        data={result.breakdown}
-        csvFilename={`fdr_schedule_${principal}_${annualRate}pct.csv`}
-      />
+      {/* Bottom Schedule Table (Visible and expanded by default when in Visuals mode) */}
+      {viewMode === 'visuals' && (
+        <ScheduleTable
+          id="fdr-schedule-table"
+          title="FDR Compounding Schedule"
+          subtitle="Detailed breakdown showing growth, tax deduction, and inflation discounting"
+          columns={tableColumns}
+          data={result.breakdown}
+          csvFilename={`fdr_schedule_${principal}_${annualRate}pct.csv`}
+          defaultExpanded={true}
+        />
+      )}
     </div>
   );
 }

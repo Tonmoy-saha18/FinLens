@@ -7,6 +7,7 @@ import {
   Sparkles,
   Layers,
   Zap,
+  Table,
 } from 'lucide-react';
 import { calculateDps } from '@/engine/dps';
 import { type CompoundingFrequency } from '@/engine/types';
@@ -54,6 +55,7 @@ export function DpsCalculator() {
 
   // View option: All months vs Annual milestones
   const [showAnnualOnly, setShowAnnualOnly] = useState<boolean>(true);
+  const [viewMode, setViewMode] = useState<'visuals' | 'table'>('visuals');
 
   // Preset handler
   const applyPreset = (p: DpsPreset) => {
@@ -322,8 +324,50 @@ export function DpsCalculator() {
         </div>
 
         {/* Results & Visuals Column */}
-        <div className="lg:col-span-7 space-y-6">
-          {/* KPI Cards Row */}
+        <div className="lg:col-span-7 space-y-5">
+          {/* View Mode Switcher Header */}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-1 p-1 bg-muted/60 rounded-xl border border-border/60 text-xs font-semibold">
+              <button
+                onClick={() => setViewMode('visuals')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                  viewMode === 'visuals'
+                    ? 'bg-background text-foreground shadow-sm font-bold text-primary'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <TrendingUp className="w-3.5 h-3.5" />
+                <span>Visual Analytics</span>
+              </button>
+              <button
+                onClick={() => setViewMode('table')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                  viewMode === 'table'
+                    ? 'bg-background text-foreground shadow-sm font-bold text-primary'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Table className="w-3.5 h-3.5" />
+                <span>Progression Schedule ({tableData.length})</span>
+              </button>
+            </div>
+
+            {viewMode === 'visuals' && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  const el = document.getElementById('dps-schedule-table');
+                  el?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="h-8 gap-1.5 text-xs text-primary font-semibold hover:bg-primary/10"
+              >
+                <span>Jump to Schedule ↓</span>
+              </Button>
+            )}
+          </div>
+
+          {/* KPI Cards Row (Always visible for at-a-glance decision making) */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <KpiCard
               label="Net Maturity"
@@ -361,74 +405,115 @@ export function DpsCalculator() {
             <span className="font-mono font-bold text-primary">{inflectionInfo}</span>
           </div>
 
-          {/* Growth Curve Chart */}
-          <div className="glass-card rounded-2xl p-5 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="text-sm font-bold text-foreground">Compounding Growth Curve</h4>
-                <p className="text-xs text-muted-foreground">Cumulative Deposits vs Net Value vs Purchasing Power</p>
-              </div>
-            </div>
+          {viewMode === 'visuals' ? (
+            <>
+              {/* Growth Curve Chart */}
+              <div className="glass-card rounded-2xl p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-bold text-foreground">Compounding Growth Curve</h4>
+                    <p className="text-xs text-muted-foreground">Cumulative Deposits vs Net Value vs Purchasing Power</p>
+                  </div>
+                </div>
 
-            <GrowthCurveChart
-              data={growthData}
-              formatValue={(v: number) => formatMoney(v)}
-              formatYAxis={(v: number) => formatShort(v)}
-            />
-          </div>
-
-          {/* Donut breakdown */}
-          <div className="glass-card rounded-2xl p-5">
-            <div className="flex items-center justify-between mb-2">
-              <div>
-                <h4 className="text-sm font-bold text-foreground">Wealth Share Breakdown</h4>
-                <p className="text-xs text-muted-foreground">Your Deposits vs Pure Compound Growth</p>
+                <GrowthCurveChart
+                  data={growthData}
+                  formatValue={(v: number) => formatMoney(v)}
+                  formatYAxis={(v: number) => formatShort(v)}
+                />
               </div>
-            </div>
-            <BreakdownDonut
-              data={donutData}
-              centerLabel="Net Maturity"
-              centerValue={formatShort(result.netMaturity)}
-              formatValue={(v) => formatMoney(v)}
+
+              {/* Donut breakdown */}
+              <div className="glass-card rounded-2xl p-5">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <h4 className="text-sm font-bold text-foreground">Wealth Share Breakdown</h4>
+                    <p className="text-xs text-muted-foreground">Your Deposits vs Pure Compound Growth</p>
+                  </div>
+                </div>
+                <BreakdownDonut
+                  data={donutData}
+                  centerLabel="Net Maturity"
+                  centerValue={formatShort(result.netMaturity)}
+                  formatValue={(v) => formatMoney(v)}
+                />
+              </div>
+            </>
+          ) : (
+            /* Direct Inline Schedule Table in main view */
+            <ScheduleTable
+              id="dps-schedule-table-direct"
+              title="DPS Progression Schedule"
+              subtitle={showAnnualOnly ? 'Displaying yearly summary milestones' : 'Displaying complete month-by-month trajectory'}
+              columns={tableColumns}
+              data={tableData}
+              csvFilename={`dps_schedule_${monthlyInstallment}mo_${tenureMonths}m.csv`}
+              defaultExpanded={true}
+              filterSlot={
+                <div className="flex items-center gap-1 bg-muted/60 p-0.5 rounded-lg border border-border/60 text-[11px]">
+                  <button
+                    onClick={() => setShowAnnualOnly(true)}
+                    className={`px-2.5 py-1 rounded-md font-semibold transition-all ${
+                      showAnnualOnly
+                        ? 'bg-primary text-primary-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    Annual Milestones
+                  </button>
+                  <button
+                    onClick={() => setShowAnnualOnly(false)}
+                    className={`px-2.5 py-1 rounded-md font-semibold transition-all ${
+                      !showAnnualOnly
+                        ? 'bg-primary text-primary-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    All {result.breakdown.length} Mo
+                  </button>
+                </div>
+              }
             />
-          </div>
+          )}
         </div>
       </div>
 
-      {/* Expandable Schedule Table */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-end gap-2 text-xs">
-          <span className="text-muted-foreground">Filter Table View:</span>
-          <button
-            onClick={() => setShowAnnualOnly(true)}
-            className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
-              showAnnualOnly
-                ? 'bg-primary text-primary-foreground font-semibold'
-                : 'bg-muted text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            Annual Milestones
-          </button>
-          <button
-            onClick={() => setShowAnnualOnly(false)}
-            className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
-              !showAnnualOnly
-                ? 'bg-primary text-primary-foreground font-semibold'
-                : 'bg-muted text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            All {result.breakdown.length} Months
-          </button>
-        </div>
-
+      {/* Bottom Schedule Table (Visible and expanded by default when in Visuals mode) */}
+      {viewMode === 'visuals' && (
         <ScheduleTable
+          id="dps-schedule-table"
           title="DPS Progression Schedule"
           subtitle={showAnnualOnly ? 'Displaying yearly summary milestones' : 'Displaying complete month-by-month trajectory'}
           columns={tableColumns}
           data={tableData}
           csvFilename={`dps_schedule_${monthlyInstallment}mo_${tenureMonths}m.csv`}
+          defaultExpanded={true}
+          filterSlot={
+            <div className="flex items-center gap-1 bg-muted/60 p-0.5 rounded-lg border border-border/60 text-[11px]">
+              <button
+                onClick={() => setShowAnnualOnly(true)}
+                className={`px-2.5 py-1 rounded-md font-semibold transition-all ${
+                  showAnnualOnly
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Annual Milestones
+              </button>
+              <button
+                onClick={() => setShowAnnualOnly(false)}
+                className={`px-2.5 py-1 rounded-md font-semibold transition-all ${
+                  !showAnnualOnly
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                All {result.breakdown.length} Mo
+              </button>
+            </div>
+          }
         />
-      </div>
+      )}
     </div>
   );
 }
