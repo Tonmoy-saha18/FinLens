@@ -8,6 +8,8 @@ import {
   type ScenarioType,
 } from '@/engine/comparison';
 
+export type { PinnedScenario, ScenarioType };
+
 const PALETTE = [
   'hsl(245, 58%, 55%)', // Indigo/Primary
   'hsl(160, 60%, 45%)', // Emerald

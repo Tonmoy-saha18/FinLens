@@ -362,4 +362,62 @@ describe('DPS Calculator', () => {
       expect(result.breakdown.length).toBe(60);
     });
   });
+
+  // ── Step-Up DPS Scenarios ─────────────────────────────────────
+
+  describe('Step-Up DPS Engine', () => {
+    it('should compound with 10% annual step-up and generate higher wealth than flat DPS', () => {
+      const flatResult = calculateDps(
+        makeDpsInput({
+          monthlyInstallment: new Decimal(5000),
+          annualRatePct: new Decimal(9.5),
+          tenureYears: 3,
+          compounding: 'monthly',
+          taxPct: new Decimal(10),
+          annualStepUpPercent: new Decimal(0),
+        })
+      );
+
+      const stepUpResult = calculateDps(
+        makeDpsInput({
+          monthlyInstallment: new Decimal(5000),
+          annualRatePct: new Decimal(9.5),
+          tenureYears: 3,
+          compounding: 'monthly',
+          taxPct: new Decimal(10),
+          annualStepUpPercent: new Decimal(10),
+        })
+      );
+
+      // In year 1, months 1-12 have 5000 installment
+      expect(stepUpResult.breakdown[0]!.currentInstallment?.toNumber()).toBe(5000);
+      expect(stepUpResult.breakdown[11]!.currentInstallment?.toNumber()).toBe(5000);
+
+      // In year 2, month 13 has 5000 * 1.1 = 5500
+      expect(stepUpResult.breakdown[12]!.currentInstallment?.toNumber()).toBe(5500);
+
+      // In year 3, month 25 has 5000 * 1.21 = 6050
+      expect(stepUpResult.breakdown[24]!.currentInstallment?.toNumber()).toBe(6050);
+
+      // Step-up results should exceed flat DPS
+      expect(stepUpResult.totalDeposited.gt(flatResult.totalDeposited)).toBe(true);
+      expect(stepUpResult.netMaturity.gt(flatResult.netMaturity)).toBe(true);
+
+      // flatComparison should be present and match flatResult
+      expect(stepUpResult.flatComparison).toBeDefined();
+      expect(stepUpResult.flatComparison!.totalDeposited.toNumber()).toBe(flatResult.totalDeposited.toNumber());
+      expect(stepUpResult.flatComparison!.netMaturity.toNumber()).toBeCloseTo(flatResult.netMaturity.toNumber(), 0);
+      expect(stepUpResult.flatComparison!.extraMaturityEarned.gt(0)).toBe(true);
+    });
+
+    it('should throw on negative annual step-up percentage', () => {
+      expect(() =>
+        calculateDps(
+          makeDpsInput({
+            annualStepUpPercent: new Decimal(-5),
+          })
+        )
+      ).toThrow('Annual step-up percentage cannot be negative');
+    });
+  });
 });

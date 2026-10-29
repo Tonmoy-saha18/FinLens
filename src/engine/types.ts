@@ -64,6 +64,25 @@ export interface FdrPeriodBreakdown {
   realValue: Decimal;
 }
 
+// ─── Excise Duty & Tax Optimization Types ──────────────────────
+
+export interface SplitSavingsTip {
+  /** True if splitting into two accounts reduces excise duty */
+  canSave: boolean;
+  /** Single account excise duty per year */
+  originalExcisePerYear: Decimal;
+  /** Combined excise duty per year if split into 2 accounts */
+  splitExcisePerYear: Decimal;
+  /** Annual savings in excise duty */
+  annualSavings: Decimal;
+  /** Total cumulative savings across the investment tenure */
+  totalSavingsOverTenure: Decimal;
+  /** Recommended split breakdown string (e.g. "2 × ৳3.00L") */
+  recommendedSplit: string;
+  /** Friendly explanatory advice */
+  description: string;
+}
+
 export interface FdrResult {
   principal: Decimal;
   grossMaturity: Decimal;
@@ -77,12 +96,14 @@ export interface FdrResult {
   realPurchasingPower: Decimal;
   /** Period-by-period breakdown */
   breakdown: FdrPeriodBreakdown[];
+  /** Smart excise duty split savings recommendation */
+  splitSavingsTip?: SplitSavingsTip;
 }
 
 // ─── DPS / Recurring Deposit Types ─────────────────────────────
 
 export interface DpsInput {
-  /** Fixed monthly installment amount */
+  /** Fixed monthly installment amount (starting installment if step-up enabled) */
   monthlyInstallment: Decimal;
   /** Annual interest rate as a percentage */
   annualRatePct: Decimal;
@@ -96,6 +117,8 @@ export interface DpsInput {
   annualFee: Decimal;
   /** Expected annual inflation rate as a percentage */
   inflationPct: Decimal;
+  /** Annual percentage increase in monthly installment (0 to 25%, e.g. 10 for 10%) */
+  annualStepUpPercent?: Decimal;
 }
 
 export interface DpsPeriodBreakdown {
@@ -111,6 +134,10 @@ export interface DpsPeriodBreakdown {
   netBalance: Decimal;
   /** Inflation-adjusted real value */
   realValue: Decimal;
+  /** Installment deposited in this specific month */
+  currentInstallment?: Decimal;
+  /** Net balance if step-up was 0% (for side-by-side curve overlay) */
+  flatNetBalance?: Decimal;
 }
 
 export interface DpsResult {
@@ -124,6 +151,15 @@ export interface DpsResult {
   realPurchasingPower: Decimal;
   /** Monthly progression array */
   breakdown: DpsPeriodBreakdown[];
+  /** Comparison metrics against flat (0% step-up) installment */
+  flatComparison?: {
+    totalDeposited: Decimal;
+    netMaturity: Decimal;
+    netInterest: Decimal;
+    extraMaturityEarned: Decimal;
+  };
+  /** Smart excise duty split savings recommendation */
+  splitSavingsTip?: SplitSavingsTip;
 }
 
 // ─── EMI / Loan Amortization Types ─────────────────────────────

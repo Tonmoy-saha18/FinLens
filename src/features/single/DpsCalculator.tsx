@@ -8,6 +8,7 @@ import {
   Layers,
   Zap,
   Table,
+  Swords,
 } from 'lucide-react';
 import { calculateDps } from '@/engine/dps';
 import { type CompoundingFrequency } from '@/engine/types';
@@ -17,10 +18,12 @@ import { KpiCard } from '@/components/controls/KpiCard';
 import { GrowthCurveChart } from '@/components/charts/GrowthCurveChart';
 import { BreakdownDonut } from '@/components/charts/BreakdownDonut';
 import { ScheduleTable, type ColumnDef } from '@/components/tables/ScheduleTable';
+import { VerdictBanner } from '@/components/VerdictBanner';
+import { ExportCardButton } from '@/components/ExportCardButton';
+import { ShareLinkButton } from '@/components/ShareLinkButton';
 import { useSettings } from '@/state/settings';
 import { useScenarios } from '@/state/scenarios';
 import { Button } from '@/components/ui/button';
-import { Swords } from 'lucide-react';
 
 interface DpsPreset {
   name: string;
@@ -28,13 +31,14 @@ interface DpsPreset {
   rate: number;
   years: number;
   compounding: CompoundingFrequency;
+  stepUp?: number;
 }
 
 const DPS_PRESETS: DpsPreset[] = [
-  { name: 'Starter: 5-Yr (৳2.5K/mo)', monthly: 2500, rate: 9.0, years: 5, compounding: 'monthly' },
-  { name: 'Builder: 10-Yr (৳5K/mo)', monthly: 5000, rate: 9.5, years: 10, compounding: 'monthly' },
-  { name: 'Retirement: 15-Yr (৳15K/mo)', monthly: 15000, rate: 10.0, years: 15, compounding: 'quarterly' },
-  { name: 'Wealth: 20-Yr (৳25K/mo)', monthly: 25000, rate: 10.5, years: 20, compounding: 'quarterly' },
+  { name: 'Starter: 5-Yr (৳2.5K/mo)', monthly: 2500, rate: 9.0, years: 5, compounding: 'monthly', stepUp: 0 },
+  { name: 'Builder: 10-Yr (৳5K/mo)', monthly: 5000, rate: 9.5, years: 10, compounding: 'monthly', stepUp: 10 },
+  { name: 'Retirement: 15-Yr (৳15K/mo)', monthly: 15000, rate: 10.0, years: 15, compounding: 'quarterly', stepUp: 5 },
+  { name: 'Wealth: 20-Yr (৳25K/mo)', monthly: 25000, rate: 10.5, years: 20, compounding: 'quarterly', stepUp: 10 },
 ];
 
 export function DpsCalculator() {
@@ -46,6 +50,7 @@ export function DpsCalculator() {
   const [annualRate, setAnnualRate] = useState<number>(9.5);
   const [tenureMonths, setTenureMonths] = useState<number>(120);
   const [tenureUnit, setTenureUnit] = useState<'years' | 'months'>('years');
+  const [stepUpPercent, setStepUpPercent] = useState<number>(0);
   const [compounding, setCompounding] = useState<CompoundingFrequency>('monthly');
 
   // Reality adjustments
@@ -63,6 +68,7 @@ export function DpsCalculator() {
     setAnnualRate(p.rate);
     setTenureMonths(p.years * 12);
     setCompounding(p.compounding);
+    setStepUpPercent(p.stepUp ?? 0);
   };
 
   const handlePin = () => {
@@ -70,12 +76,13 @@ export function DpsCalculator() {
       ? `${(tenureMonths / 12).toFixed(1)} yrs`
       : `${tenureMonths} mo`;
     pinScenario({
-      name: `DPS ${formatShort(monthlyInstallment)}/mo (${tenureDisplay})`,
+      name: `DPS ${formatShort(monthlyInstallment)}/mo (${tenureDisplay}${stepUpPercent > 0 ? ` +${stepUpPercent}%/yr` : ''})`,
       type: 'dps',
       params: {
         Monthly: formatShort(monthlyInstallment),
         Tenure: tenureDisplay,
         Rate: `${annualRate}%`,
+        StepUp: stepUpPercent > 0 ? `${stepUpPercent}%/yr` : '0%',
         Compounding: compounding,
       },
       result,
@@ -92,8 +99,9 @@ export function DpsCalculator() {
       taxPct: new Decimal(taxPct),
       annualFee: new Decimal(annualFee),
       inflationPct: new Decimal(inflationPct),
+      annualStepUpPercent: new Decimal(stepUpPercent),
     });
-  }, [monthlyInstallment, annualRate, tenureMonths, compounding, taxPct, annualFee, inflationPct]);
+  }, [monthlyInstallment, annualRate, tenureMonths, compounding, taxPct, annualFee, inflationPct, stepUpPercent]);
 
   // Wealth multiplier
   const multiplier = useMemo(() => {
@@ -139,6 +147,7 @@ export function DpsCalculator() {
           grossBalance: row.grossBalance.toNumber(),
           netBalance: row.netBalance.toNumber(),
           realValue: row.realValue.toNumber(),
+          flatNetBalance: row.flatNetBalance?.toNumber(),
         };
       });
   }, [result]);
@@ -177,8 +186,14 @@ export function DpsCalculator() {
       },
     },
     {
+      key: 'currentInstallment',
+      header: 'Monthly Deposit',
+      align: 'right',
+      render: (r) => formatMoney(r.currentInstallment ?? monthlyInstallment),
+    },
+    {
       key: 'totalDeposited',
-      header: 'Deposited',
+      header: 'Total Deposited',
       align: 'right',
       render: (r) => formatMoney(r.totalDeposited),
     },
@@ -204,7 +219,7 @@ export function DpsCalculator() {
 
   return (
     <div className="space-y-6">
-      {/* Presets Bar */}
+      {/* Presets Bar & Action Controls */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 mr-1">
@@ -224,14 +239,18 @@ export function DpsCalculator() {
           ))}
         </div>
 
-        <Button
-          onClick={handlePin}
-          size="sm"
-          className="h-8 gap-1.5 text-xs font-bold rounded-xl shadow-sm bg-primary/90 hover:bg-primary text-primary-foreground"
-        >
-          <Swords className="h-3.5 w-3.5" />
-          <span>+ Pin to Arena</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <ShareLinkButton label="Share Plan" />
+          <ExportCardButton targetElementId="dps-export-card" filename="finlens_dps_plan.png" />
+          <Button
+            onClick={handlePin}
+            size="sm"
+            className="h-8 gap-1.5 text-xs font-bold rounded-xl shadow-sm bg-primary/90 hover:bg-primary text-primary-foreground"
+          >
+            <Swords className="h-3.5 w-3.5" />
+            <span>+ Pin to Arena</span>
+          </Button>
+        </div>
       </div>
 
       {/* Main Grid: Controls vs Visuals */}
@@ -246,7 +265,7 @@ export function DpsCalculator() {
 
             <DualSliderInput
               id="dps-installment"
-              label="Monthly Installment"
+              label="Starting Monthly Installment"
               value={monthlyInstallment}
               onChange={setMonthlyInstallment}
               min={100}
@@ -254,6 +273,18 @@ export function DpsCalculator() {
               step={500}
               prefix={symbol}
               hint="Supports 5k, 25k, etc."
+            />
+
+            <DualSliderInput
+              id="dps-stepup"
+              label="Annual Step-Up Rate"
+              value={stepUpPercent}
+              onChange={setStepUpPercent}
+              min={0}
+              max={25}
+              step={1}
+              unit="%"
+              hint="Increases deposit yearly (e.g. 10% = ৳5K yr 1, ৳5.5K yr 2, ৳6.05K yr 3)"
             />
 
             <DualSliderInput
@@ -312,7 +343,7 @@ export function DpsCalculator() {
             </div>
           </div>
 
-          {/* Reality adjustments */}
+          {/* Reality adjustments with Auto BD Excise Duty */}
           <RealityToggles
             taxPct={taxPct}
             onTaxPctChange={setTaxPct}
@@ -320,6 +351,7 @@ export function DpsCalculator() {
             onAnnualFeeChange={setAnnualFee}
             inflationPct={inflationPct}
             onInflationPctChange={setInflationPct}
+            currentBalance={result.netMaturity.toNumber()}
           />
         </div>
 
@@ -367,114 +399,151 @@ export function DpsCalculator() {
             )}
           </div>
 
-          {/* KPI Cards Row (Always visible for at-a-glance decision making) */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <KpiCard
-              label="Net Maturity"
-              value={formatMoney(result.netMaturity)}
-              subtitle={`Real purchasing power: ${formatMoney(result.realPurchasingPower)}`}
-              icon={TrendingUp}
-              trend="up"
-              accentColor="text-emerald-500"
-              className="col-span-2 sm:col-span-1"
+          {/* Exportable Visual Card Container */}
+          <div id="dps-export-card" className="space-y-4 p-1">
+            {/* Smart Advisor Verdict Banner */}
+            <VerdictBanner
+              mode="single"
+              type="dps"
+              result={result}
+              splitSavingsTip={result.splitSavingsTip}
             />
-            <KpiCard
-              label="Wealth Multiplier"
-              value={`${multiplier}×`}
-              subtitle={`Deposited: ${formatMoney(result.totalDeposited)}`}
-              icon={Zap}
-              trend="up"
-              accentColor="text-amber-500"
-            />
-            <KpiCard
-              label="Net Interest"
-              value={formatMoney(result.netInterest)}
-              subtitle={`Tax paid: ${formatMoney(result.totalTax)}`}
-              icon={Percent}
-              trend="up"
-              accentColor="text-indigo-500"
-            />
-          </div>
 
-          {/* Compounding Inflection Banner */}
-          <div className="p-3.5 rounded-xl border border-primary/30 bg-primary/5 flex items-center justify-between text-xs">
-            <div className="flex items-center gap-2">
-              <span className="flex h-2 w-2 rounded-full bg-primary animate-pulse" />
-              <span className="font-semibold text-foreground">Interest Crossover Inflection Point:</span>
+            {/* KPI Cards Row */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <KpiCard
+                label="Net Maturity"
+                value={formatMoney(result.netMaturity)}
+                subtitle={`Real purchasing power: ${formatMoney(result.realPurchasingPower)}`}
+                icon={TrendingUp}
+                trend="up"
+                accentColor="text-emerald-500"
+                className="col-span-2 sm:col-span-1"
+              />
+              <KpiCard
+                label="Wealth Multiplier"
+                value={`${multiplier}×`}
+                subtitle={`Deposited: ${formatMoney(result.totalDeposited)}`}
+                icon={Zap}
+                trend="up"
+                accentColor="text-amber-500"
+              />
+              <KpiCard
+                label="Net Interest"
+                value={formatMoney(result.netInterest)}
+                subtitle={`Tax paid: ${formatMoney(result.totalTax)}`}
+                icon={Percent}
+                trend="up"
+                accentColor="text-indigo-500"
+              />
             </div>
-            <span className="font-mono font-bold text-primary">{inflectionInfo}</span>
+
+            {/* Step-Up Compounding Boost Callout */}
+            {result.flatComparison && stepUpPercent > 0 && (
+              <div className="p-3.5 rounded-xl border border-primary/30 bg-primary/10 flex flex-wrap items-center justify-between text-xs gap-2">
+                <div className="flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-amber-500 shrink-0" />
+                  <span className="font-semibold text-foreground">
+                    Step-Up Acceleration (+{stepUpPercent}%/yr): Earns {formatMoney(result.flatComparison.extraMaturityEarned)} extra net maturity vs flat DPS!
+                  </span>
+                </div>
+                <span className="font-mono font-bold text-primary">
+                  +{formatMoney(result.flatComparison.extraMaturityEarned)}
+                </span>
+              </div>
+            )}
+
+            {/* Compounding Inflection Banner */}
+            <div className="p-3.5 rounded-xl border border-primary/30 bg-primary/5 flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2">
+                <span className="flex h-2 w-2 rounded-full bg-primary animate-pulse" />
+                <span className="font-semibold text-foreground">Interest Crossover Inflection Point:</span>
+              </div>
+              <span className="font-mono font-bold text-primary">{inflectionInfo}</span>
+            </div>
+
+            {viewMode === 'visuals' ? (
+              <>
+                {/* Growth Curve Chart with Step-Up Comparison */}
+                <div className="glass-card rounded-2xl p-5 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-sm font-bold text-foreground">Compounding Growth Curve</h4>
+                      <p className="text-xs text-muted-foreground">
+                        {stepUpPercent > 0 ? 'Step-Up DPS (green) vs Flat DPS (purple dashed) vs Real Value' : 'Deposits vs Net Value vs Purchasing Power'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <GrowthCurveChart
+                    data={growthData}
+                    formatValue={(v: number) => formatMoney(v)}
+                    formatYAxis={(v: number) => formatShort(v)}
+                  />
+                </div>
+
+                {/* Donut breakdown */}
+                <div className="glass-card rounded-2xl p-5">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <h4 className="text-sm font-bold text-foreground">Wealth Share Breakdown</h4>
+                      <p className="text-xs text-muted-foreground">Your Deposits vs Pure Compound Growth</p>
+                    </div>
+                  </div>
+                  <BreakdownDonut
+                    data={donutData}
+                    centerLabel="Net Maturity"
+                    centerValue={formatShort(result.netMaturity)}
+                    formatValue={(v) => formatMoney(v)}
+                  />
+                </div>
+              </>
+            ) : (
+              /* Direct Inline Schedule Table in main view */
+              <ScheduleTable
+                id="dps-schedule-table-direct"
+                title="DPS Progression Schedule"
+                subtitle={showAnnualOnly ? 'Displaying yearly summary milestones' : 'Displaying complete month-by-month trajectory'}
+                columns={tableColumns}
+                data={tableData}
+                csvFilename={`dps_schedule_${monthlyInstallment}mo_${tenureMonths}m.csv`}
+                defaultExpanded={true}
+                filterSlot={
+                  <div className="flex items-center gap-1 bg-muted/60 p-0.5 rounded-lg border border-border/60 text-[11px]">
+                    <button
+                      onClick={() => setShowAnnualOnly(true)}
+                      className={`px-2.5 py-1 rounded-md font-semibold transition-all ${
+                        showAnnualOnly
+                          ? 'bg-primary text-primary-foreground shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      Annual Milestones
+                    </button>
+                    <button
+                      onClick={() => setShowAnnualOnly(false)}
+                      className={`px-2.5 py-1 rounded-md font-semibold transition-all ${
+                        !showAnnualOnly
+                          ? 'bg-primary text-primary-foreground shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      All {result.breakdown.length} Mo
+                    </button>
+                  </div>
+                }
+              />
+            )}
+
+            {/* Clean Export Card Watermark Footer */}
+            <div className="flex items-center justify-between pt-3 mt-2 border-t border-border/40 text-[11px] text-muted-foreground font-mono">
+              <div className="flex items-center gap-1.5">
+                <img src="./favicon.svg" alt="FinLens" className="w-4 h-4 rounded" />
+                <span className="font-bold text-foreground">FinLens Intelligent Financial Engine</span>
+              </div>
+              <span className="text-primary font-semibold">tonmoy-saha18.github.io/FinLens</span>
+            </div>
           </div>
-
-          {viewMode === 'visuals' ? (
-            <>
-              {/* Growth Curve Chart */}
-              <div className="glass-card rounded-2xl p-5 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="text-sm font-bold text-foreground">Compounding Growth Curve</h4>
-                    <p className="text-xs text-muted-foreground">Cumulative Deposits vs Net Value vs Purchasing Power</p>
-                  </div>
-                </div>
-
-                <GrowthCurveChart
-                  data={growthData}
-                  formatValue={(v: number) => formatMoney(v)}
-                  formatYAxis={(v: number) => formatShort(v)}
-                />
-              </div>
-
-              {/* Donut breakdown */}
-              <div className="glass-card rounded-2xl p-5">
-                <div className="flex items-center justify-between mb-2">
-                  <div>
-                    <h4 className="text-sm font-bold text-foreground">Wealth Share Breakdown</h4>
-                    <p className="text-xs text-muted-foreground">Your Deposits vs Pure Compound Growth</p>
-                  </div>
-                </div>
-                <BreakdownDonut
-                  data={donutData}
-                  centerLabel="Net Maturity"
-                  centerValue={formatShort(result.netMaturity)}
-                  formatValue={(v) => formatMoney(v)}
-                />
-              </div>
-            </>
-          ) : (
-            /* Direct Inline Schedule Table in main view */
-            <ScheduleTable
-              id="dps-schedule-table-direct"
-              title="DPS Progression Schedule"
-              subtitle={showAnnualOnly ? 'Displaying yearly summary milestones' : 'Displaying complete month-by-month trajectory'}
-              columns={tableColumns}
-              data={tableData}
-              csvFilename={`dps_schedule_${monthlyInstallment}mo_${tenureMonths}m.csv`}
-              defaultExpanded={true}
-              filterSlot={
-                <div className="flex items-center gap-1 bg-muted/60 p-0.5 rounded-lg border border-border/60 text-[11px]">
-                  <button
-                    onClick={() => setShowAnnualOnly(true)}
-                    className={`px-2.5 py-1 rounded-md font-semibold transition-all ${
-                      showAnnualOnly
-                        ? 'bg-primary text-primary-foreground shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    Annual Milestones
-                  </button>
-                  <button
-                    onClick={() => setShowAnnualOnly(false)}
-                    className={`px-2.5 py-1 rounded-md font-semibold transition-all ${
-                      !showAnnualOnly
-                        ? 'bg-primary text-primary-foreground shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    All {result.breakdown.length} Mo
-                  </button>
-                </div>
-              }
-            />
-          )}
         </div>
       </div>
 

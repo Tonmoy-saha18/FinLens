@@ -7,19 +7,35 @@ import {
 import { FdrCalculator } from './FdrCalculator';
 import { DpsCalculator } from './DpsCalculator';
 import { EmiCalculator } from './EmiCalculator';
+import { MarketPresetsBar, type MarketPreset } from '@/components/MarketPresetsBar';
 
 export type CalculatorTab = 'fdr' | 'dps' | 'emi';
 
 export function SingleCalculatorView() {
   const [activeTab, setActiveTab] = useState<CalculatorTab>('fdr');
+  const [selectedPresetId, setSelectedPresetId] = useState<string | undefined>();
+
+  const handleSelectMarketPreset = (preset: MarketPreset) => {
+    setSelectedPresetId(preset.id);
+    setActiveTab(preset.tab);
+  };
 
   return (
     <div className="space-y-6">
+      {/* Quick-Fill Market Benchmarks Bar */}
+      <MarketPresetsBar
+        onSelectPreset={handleSelectMarketPreset}
+        activePresetId={selectedPresetId}
+      />
+
       {/* Tab Switcher */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/70 pb-4">
         <div className="flex items-center gap-1.5 p-1 bg-muted/60 rounded-xl border border-border/60 self-start">
           <button
-            onClick={() => setActiveTab('fdr')}
+            onClick={() => {
+              setActiveTab('fdr');
+              setSelectedPresetId(undefined);
+            }}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
               activeTab === 'fdr'
                 ? 'bg-background text-foreground shadow-sm shadow-black/5 font-bold text-primary'
@@ -31,7 +47,10 @@ export function SingleCalculatorView() {
           </button>
 
           <button
-            onClick={() => setActiveTab('dps')}
+            onClick={() => {
+              setActiveTab('dps');
+              setSelectedPresetId(undefined);
+            }}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
               activeTab === 'dps'
                 ? 'bg-background text-foreground shadow-sm shadow-black/5 font-bold text-primary'
@@ -43,7 +62,10 @@ export function SingleCalculatorView() {
           </button>
 
           <button
-            onClick={() => setActiveTab('emi')}
+            onClick={() => {
+              setActiveTab('emi');
+              setSelectedPresetId(undefined);
+            }}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
               activeTab === 'emi'
                 ? 'bg-background text-foreground shadow-sm shadow-black/5 font-bold text-primary'
@@ -63,7 +85,7 @@ export function SingleCalculatorView() {
       </div>
 
       {/* Calculator Body */}
-      <div className="pt-2">
+      <div className="pt-1">
         {activeTab === 'fdr' && <FdrCalculator />}
         {activeTab === 'dps' && <DpsCalculator />}
         {activeTab === 'emi' && <EmiCalculator />}

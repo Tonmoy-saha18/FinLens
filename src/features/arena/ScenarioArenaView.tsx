@@ -1,7 +1,6 @@
 import { useState, useMemo } from 'react';
 import {
   Swords,
-  Trophy,
   Sparkles,
   TrendingUp,
   PlusCircle,
@@ -13,6 +12,9 @@ import { ScenarioCard } from './ScenarioCard';
 import { OverlaidGrowthChart } from '@/components/charts/OverlaidGrowthChart';
 import { alignScenariosTimeline, determineWinner } from '@/engine/comparison';
 import { Button } from '@/components/ui/button';
+import { VerdictBanner } from '@/components/VerdictBanner';
+import { ExportCardButton } from '@/components/ExportCardButton';
+import { ShareLinkButton } from '@/components/ShareLinkButton';
 
 export function ScenarioArenaView() {
   const {
@@ -56,11 +58,18 @@ export function ScenarioArenaView() {
           </p>
         </div>
 
-        {/* Quick Comparison Presets */}
+        {/* Quick Comparison Presets & Export Actions */}
         <div className="flex flex-wrap items-center gap-2">
+          <ShareLinkButton label="Share Arena" />
+          {pinnedScenarios.length > 0 && (
+            <ExportCardButton targetElementId="arena-export-card" filename="finlens_arena_comparison.png" />
+          )}
+
+          <div className="h-4 w-px bg-border/60 mx-1 hidden sm:block" />
+
           <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
             <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-            Scenarios:
+            Battles:
           </span>
           <Button
             variant="outline"
@@ -76,7 +85,7 @@ export function ScenarioArenaView() {
             onClick={() => loadPresetBattle('loan-prepay')}
             className="h-7 text-xs rounded-full px-3 font-medium bg-card/60 hover:bg-primary/10 hover:text-primary transition-all"
           >
-            Loan Prepay vs Base
+            Loan Prepay
           </Button>
           <Button
             variant="outline"
@@ -84,7 +93,7 @@ export function ScenarioArenaView() {
             onClick={() => loadPresetBattle('dps-tenure')}
             className="h-7 text-xs rounded-full px-3 font-medium bg-card/60 hover:bg-primary/10 hover:text-primary transition-all"
           >
-            DPS Tenure Battle
+            DPS Tenure
           </Button>
 
           {pinnedScenarios.length > 0 && (
@@ -132,38 +141,9 @@ export function ScenarioArenaView() {
           </div>
         </div>
       ) : (
-        <>
-          {/* Winner Insight Banner */}
-          {winnerInfo.winnerId && pinnedScenarios.length > 1 && (
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-primary/5 to-teal-500/10 border border-emerald-500/30 flex flex-wrap items-center justify-between gap-3 animate-fade-in">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-emerald-500 text-white shadow-md">
-                  <Trophy className="h-5 w-5" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
-                    Winner:{' '}
-                    <span className="text-emerald-600 dark:text-emerald-400">
-                      {pinnedScenarios.find((s) => s.id === winnerInfo.winnerId)?.name}
-                    </span>
-                  </h4>
-                  <p className="text-xs text-muted-foreground">{winnerInfo.reason}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setActiveView('single')}
-                  className="h-8 text-xs font-semibold gap-1.5"
-                >
-                  <PlusCircle className="h-3.5 w-3.5 text-primary" />
-                  <span>Pin Another Scenario</span>
-                </Button>
-              </div>
-            </div>
-          )}
+        <div id="arena-export-card" className="space-y-6 bg-background/50 p-1 rounded-2xl">
+          {/* Smart Advisor Verdict Banner for Arena */}
+          <VerdictBanner mode="arena" scenarios={pinnedScenarios} />
 
           {/* Side-by-Side Comparison Cards Grid (up to 3 cards) */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -239,7 +219,16 @@ export function ScenarioArenaView() {
               formatYAxis={(v) => formatShort(v)}
             />
           </div>
-        </>
+
+          {/* Export Footer Watermark */}
+          <div className="flex items-center justify-between pt-3 mt-2 border-t border-border/40 text-[11px] text-muted-foreground font-mono">
+            <div className="flex items-center gap-1.5">
+              <img src="./favicon.svg" alt="FinLens" className="w-4 h-4 rounded" />
+              <span className="font-bold text-foreground">FinLens Intelligent Financial Decision Engine</span>
+            </div>
+            <span className="text-primary font-semibold">tonmoy-saha18.github.io/FinLens</span>
+          </div>
+        </div>
       )}
     </div>
   );
