@@ -7,8 +7,33 @@ import {
   type PinnedScenario,
   type ScenarioType,
 } from '@/engine/comparison';
+import { type CompoundingFrequency } from '@/engine/types';
+import { type BankScheme } from '@/data/bankRates';
 
 export type { PinnedScenario, ScenarioType };
+
+export type ActiveView = 'single' | 'arena' | 'advisor';
+
+export interface CalculatorLoadRequest {
+  id: string;
+  tab: 'fdr' | 'dps' | 'emi';
+  params: {
+    principal?: number;
+    annualRate?: number;
+    tenureMonths?: number;
+    compounding?: CompoundingFrequency;
+    taxPct?: number;
+    annualFee?: number;
+    inflationPct?: number;
+    monthlyInstallment?: number;
+    stepUpPercent?: number;
+    loanPrincipal?: number;
+    extraMonthly?: number;
+    yearlyLump?: number;
+  };
+  schemeName?: string;
+  bankName?: string;
+}
 
 const PALETTE = [
   'hsl(245, 58%, 55%)', // Indigo/Primary
@@ -26,11 +51,15 @@ interface ScenariosContextType {
       result: any;
     }
   ) => boolean;
+  pinBankScheme: (scheme: BankScheme) => boolean;
   unpinScenario: (id: string) => void;
   updateScenarioName: (id: string, name: string) => void;
   clearAllScenarios: () => void;
-  activeView: 'single' | 'arena';
-  setActiveView: (view: 'single' | 'arena') => void;
+  activeView: ActiveView;
+  setActiveView: (view: ActiveView) => void;
+  calculatorLoadRequest: CalculatorLoadRequest | null;
+  loadIntoCalculator: (request: Omit<CalculatorLoadRequest, 'id'>) => void;
+  clearCalculatorLoadRequest: () => void;
   notification: string | null;
   loadPresetBattle: (presetId: 'fdr-war' | 'loan-prepay' | 'dps-tenure') => void;
 }
@@ -43,8 +72,9 @@ export function ScenariosProvider({ children }: { children: React.ReactNode }) {
     return getFdrRateWarPreset();
   });
 
-  const [activeView, setActiveView] = useState<'single' | 'arena'>('single');
+  const [activeView, setActiveView] = useState<ActiveView>('single');
   const [notification, setNotification] = useState<string | null>(null);
+  const [calculatorLoadRequest, setCalculatorLoadRequest] = useState<CalculatorLoadRequest | null>(null);
 
   useEffect(() => {
     if (notification) {
@@ -77,6 +107,110 @@ export function ScenariosProvider({ children }: { children: React.ReactNode }) {
     setPinnedScenarios((prev) => [...prev, newScenario]);
     setNotification(`Pinned "${item.name}" to Scenario Arena (${pinnedScenarios.length + 1}/3)`);
     return true;
+  };
+
+  const pinBankScheme = (scheme: BankScheme): boolean => {
+    if (pinnedScenarios.length >= 3) {
+      setNotification('Arena is full (max 3 scenarios). Remove one first.');
+      return false;
+    }
+
+    const def = scheme.calculatorDefaults;
+
+    if (scheme.type === 'fdr') {
+      const p = def.principal || 100000;
+      const res = calculateFdr({
+        principal: new Decimal(p),
+        annualRatePct: new Decimal(def.annualRate),
+        tenureMonths: def.tenureMonths,
+        compounding: def.compounding || 'quarterly',
+        taxPct: new Decimal(10),
+        annualFee: new Decimal(0),
+        inflationPct: new Decimal(6),
+      });
+
+      return pinScenario({
+        name: `${scheme.bankShort}: ${scheme.headlineRate}% FDR`,
+        type: 'fdr',
+        params: {
+          Bank: scheme.bankShort,
+          Scheme: scheme.schemeName,
+          Rate: `${scheme.headlineRate}%`,
+          Tenure: `${def.tenureMonths} mo`,
+          Compounding: def.compounding || 'quarterly',
+        },
+        result: res,
+      });
+    }
+
+    if (scheme.type === 'dps') {
+      const m = def.monthlyInstallment || 5000;
+      const yrs = (def.tenureMonths || 60) / 12;
+      const res = calculateDps({
+        monthlyInstallment: new Decimal(m),
+        annualRatePct: new Decimal(def.annualRate),
+        tenureYears: yrs,
+        compounding: def.compounding || 'monthly',
+        annualStepUpPercent: new Decimal(def.stepUpPercent || 0),
+        taxPct: new Decimal(10),
+        annualFee: new Decimal(0),
+        inflationPct: new Decimal(6),
+      });
+
+      return pinScenario({
+        name: `${scheme.bankShort}: ${scheme.headlineRate}% DPS`,
+        type: 'dps',
+        params: {
+          Bank: scheme.bankShort,
+          Scheme: scheme.schemeName,
+          Rate: `${scheme.headlineRate}%`,
+          Monthly: `৳${m.toLocaleString()}`,
+          Tenure: `${yrs} yrs`,
+        },
+        result: res,
+      });
+    }
+
+    if (scheme.type === 'loan') {
+      const lp = def.loanPrincipal || 5000000;
+      const res = calculateEmi({
+        loanPrincipal: new Decimal(lp),
+        annualRatePct: new Decimal(def.annualRate),
+        tenureMonths: def.tenureMonths || 240,
+        extraMonthlyPrepayment: new Decimal(def.extraMonthly || 0),
+        yearlyLumpSumPrepayment: new Decimal(0),
+      });
+
+      return pinScenario({
+        name: `${scheme.bankShort}: ${scheme.headlineRate}% Loan`,
+        type: 'emi',
+        params: {
+          Bank: scheme.bankShort,
+          Scheme: scheme.schemeName,
+          Rate: `${scheme.headlineRate}%`,
+          Principal: `৳${(lp / 100000).toFixed(0)}L`,
+          Tenure: `${(def.tenureMonths || 240) / 12} yrs`,
+        },
+        result: res,
+      });
+    }
+
+    return false;
+  };
+
+  const loadIntoCalculator = (request: Omit<CalculatorLoadRequest, 'id'>) => {
+    const fullRequest: CalculatorLoadRequest = {
+      ...request,
+      id: `req_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+    };
+    setCalculatorLoadRequest(fullRequest);
+    setActiveView('single');
+    const label = request.schemeName || `${request.bankName || ''} plan`;
+    setNotification(`Loaded ${label} into calculator!`);
+  };
+
+  const clearCalculatorLoadRequest = () => {
+    setCalculatorLoadRequest(null);
   };
 
   const unpinScenario = (id: string) => {
@@ -118,11 +252,15 @@ export function ScenariosProvider({ children }: { children: React.ReactNode }) {
       value={{
         pinnedScenarios,
         pinScenario,
+        pinBankScheme,
         unpinScenario,
         updateScenarioName,
         clearAllScenarios,
         activeView,
         setActiveView,
+        calculatorLoadRequest,
+        loadIntoCalculator,
+        clearCalculatorLoadRequest,
         notification,
         loadPresetBattle,
       }}

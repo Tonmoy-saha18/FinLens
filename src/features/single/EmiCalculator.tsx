@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Decimal from 'decimal.js';
 import {
   CreditCard,
@@ -69,7 +69,7 @@ const EMI_PRESETS: EmiPreset[] = [
 
 export function EmiCalculator() {
   const { formatMoney, formatShort, symbol } = useSettings();
-  const { pinScenario } = useScenarios();
+  const { pinScenario, calculatorLoadRequest, clearCalculatorLoadRequest } = useScenarios();
 
   // Inputs
   const [loanPrincipal, setLoanPrincipal] = useState<number>(5000000);
@@ -78,6 +78,22 @@ export function EmiCalculator() {
   const [tenureUnit, setTenureUnit] = useState<'years' | 'months'>('years');
   const [extraMonthly, setExtraMonthly] = useState<number>(5000);
   const [yearlyLump, setYearlyLump] = useState<number>(50000);
+
+  // Sync with incoming load requests from Advisor or Market Benchmarks
+  useEffect(() => {
+    if (calculatorLoadRequest && calculatorLoadRequest.tab === 'emi') {
+      const p = calculatorLoadRequest.params;
+      if (p.loanPrincipal !== undefined) setLoanPrincipal(p.loanPrincipal);
+      if (p.annualRate !== undefined) setAnnualRate(p.annualRate);
+      if (p.tenureMonths !== undefined) {
+        setTenureMonths(p.tenureMonths);
+        setTenureUnit(p.tenureMonths % 12 === 0 ? 'years' : 'months');
+      }
+      if (p.extraMonthly !== undefined) setExtraMonthly(p.extraMonthly);
+      if (p.yearlyLump !== undefined) setYearlyLump(p.yearlyLump);
+      clearCalculatorLoadRequest();
+    }
+  }, [calculatorLoadRequest, clearCalculatorLoadRequest]);
 
   // Table display filter & view mode
   const [showAnnualOnly, setShowAnnualOnly] = useState<boolean>(true);

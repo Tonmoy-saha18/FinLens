@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Decimal from 'decimal.js';
 import {
   Coins,
@@ -43,7 +43,7 @@ const DPS_PRESETS: DpsPreset[] = [
 
 export function DpsCalculator() {
   const { formatMoney, formatShort, symbol } = useSettings();
-  const { pinScenario } = useScenarios();
+  const { pinScenario, calculatorLoadRequest, clearCalculatorLoadRequest } = useScenarios();
 
   // Inputs
   const [monthlyInstallment, setMonthlyInstallment] = useState<number>(5000);
@@ -57,6 +57,25 @@ export function DpsCalculator() {
   const [taxPct, setTaxPct] = useState<number>(10.0);
   const [annualFee, setAnnualFee] = useState<number>(0);
   const [inflationPct, setInflationPct] = useState<number>(6.0);
+
+  // Sync with incoming load requests from Advisor or Market Benchmarks
+  useEffect(() => {
+    if (calculatorLoadRequest && calculatorLoadRequest.tab === 'dps') {
+      const p = calculatorLoadRequest.params;
+      if (p.monthlyInstallment !== undefined) setMonthlyInstallment(p.monthlyInstallment);
+      if (p.annualRate !== undefined) setAnnualRate(p.annualRate);
+      if (p.tenureMonths !== undefined) {
+        setTenureMonths(p.tenureMonths);
+        setTenureUnit(p.tenureMonths % 12 === 0 ? 'years' : 'months');
+      }
+      if (p.compounding !== undefined) setCompounding(p.compounding);
+      if (p.stepUpPercent !== undefined) setStepUpPercent(p.stepUpPercent);
+      if (p.taxPct !== undefined) setTaxPct(p.taxPct);
+      if (p.annualFee !== undefined) setAnnualFee(p.annualFee);
+      if (p.inflationPct !== undefined) setInflationPct(p.inflationPct);
+      clearCalculatorLoadRequest();
+    }
+  }, [calculatorLoadRequest, clearCalculatorLoadRequest]);
 
   // View option: All months vs Annual milestones
   const [showAnnualOnly, setShowAnnualOnly] = useState<boolean>(true);

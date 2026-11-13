@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Decimal from 'decimal.js';
 import {
   Wallet,
@@ -42,7 +42,7 @@ const FDR_PRESETS: FdrPreset[] = [
 
 export function FdrCalculator() {
   const { formatMoney, formatShort, symbol } = useSettings();
-  const { pinScenario } = useScenarios();
+  const { pinScenario, calculatorLoadRequest, clearCalculatorLoadRequest } = useScenarios();
 
   // Inputs
   const [principal, setPrincipal] = useState<number>(100000);
@@ -55,6 +55,24 @@ export function FdrCalculator() {
   const [taxPct, setTaxPct] = useState<number>(10.0);
   const [annualFee, setAnnualFee] = useState<number>(0);
   const [inflationPct, setInflationPct] = useState<number>(6.0);
+
+  // Sync with incoming load requests from Advisor or Market Benchmarks
+  useEffect(() => {
+    if (calculatorLoadRequest && calculatorLoadRequest.tab === 'fdr') {
+      const p = calculatorLoadRequest.params;
+      if (p.principal !== undefined) setPrincipal(p.principal);
+      if (p.annualRate !== undefined) setAnnualRate(p.annualRate);
+      if (p.tenureMonths !== undefined) {
+        setTenureMonths(p.tenureMonths);
+        setTenureUnit(p.tenureMonths % 12 === 0 ? 'years' : 'months');
+      }
+      if (p.compounding !== undefined) setCompounding(p.compounding);
+      if (p.taxPct !== undefined) setTaxPct(p.taxPct);
+      if (p.annualFee !== undefined) setAnnualFee(p.annualFee);
+      if (p.inflationPct !== undefined) setInflationPct(p.inflationPct);
+      clearCalculatorLoadRequest();
+    }
+  }, [calculatorLoadRequest, clearCalculatorLoadRequest]);
 
   // View toggle: Visual analytics vs Inline schedule table
   const [viewMode, setViewMode] = useState<'visuals' | 'table'>('visuals');

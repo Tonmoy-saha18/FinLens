@@ -1,5 +1,6 @@
-import { Sparkles, TrendingUp, Building2, Landmark, Home } from 'lucide-react';
+import { Sparkles, TrendingUp, Building2, Landmark, Home, ArrowRight } from 'lucide-react';
 import { type CalculatorTab } from '@/features/single/SingleCalculatorView';
+import { useScenarios } from '@/state/scenarios';
 
 export interface MarketPreset {
   id: string;
@@ -97,6 +98,8 @@ interface MarketPresetsBarProps {
 }
 
 export function MarketPresetsBar({ onSelectPreset, activePresetId }: MarketPresetsBarProps) {
+  const { setActiveView } = useScenarios();
+
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3 rounded-2xl bg-card/60 border border-border/70 shadow-sm backdrop-blur-sm">
       <div className="flex items-center gap-2 shrink-0">
@@ -139,6 +142,16 @@ export function MarketPresetsBar({ onSelectPreset, activePresetId }: MarketPrese
             </button>
           );
         })}
+
+        <button
+          type="button"
+          onClick={() => setActiveView('advisor')}
+          className="flex items-center gap-1 text-xs font-bold text-primary hover:underline px-2 py-1 ml-1"
+          title="View comprehensive bank rates and smart recommendations"
+        >
+          <span>All Bank Rates</span>
+          <ArrowRight className="h-3.5 w-3.5" />
+        </button>
       </div>
     </div>
   );
