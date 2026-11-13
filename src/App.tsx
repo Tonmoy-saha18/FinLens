@@ -2,6 +2,7 @@ import { Navbar } from '@/components/navigation/Navbar';
 import { ArenaTray } from '@/components/navigation/ArenaTray';
 import { SingleCalculatorView } from '@/features/single/SingleCalculatorView';
 import { ScenarioArenaView } from '@/features/arena/ScenarioArenaView';
+import { BankAdvisorView } from '@/features/advisor/BankAdvisorView';
 import { SettingsProvider } from '@/state/settings';
 import { ScenariosProvider, useScenarios } from '@/state/scenarios';
 import { ShieldCheck, Cpu, Eye, Lock } from 'lucide-react';
@@ -47,7 +48,9 @@ function AppContent() {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8">
-        {activeView === 'single' ? <SingleCalculatorView /> : <ScenarioArenaView />}
+        {activeView === 'single' && <SingleCalculatorView />}
+        {activeView === 'arena' && <ScenarioArenaView />}
+        {activeView === 'advisor' && <BankAdvisorView />}
       </main>
 
       {/* Floating Arena Launcher */}

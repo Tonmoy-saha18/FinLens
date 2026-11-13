@@ -26,6 +26,7 @@ export interface SerializedState {
   d_t?: number; // tax pct
   d_f?: number; // fee
   d_i?: number; // inflation
+  d_su?: number; // annual step-up pct
   // EMI
   e_p?: number; // loan principal
   e_r?: number; // rate
@@ -62,6 +63,7 @@ export function serializeStateToQuery(state: SerializedState): string {
   if (state.d_t !== undefined) params.set('dt', state.d_t.toString());
   if (state.d_f !== undefined) params.set('df', state.d_f.toString());
   if (state.d_i !== undefined) params.set('di', state.d_i.toString());
+  if (state.d_su !== undefined) params.set('dsu', state.d_su.toString());
 
   // EMI
   if (state.e_p !== undefined) params.set('ep', state.e_p.toString());
@@ -109,6 +111,7 @@ export function deserializeQueryToState(queryString: string): SerializedState {
   if (params.has('dt')) state.d_t = parseFloat(params.get('dt')!);
   if (params.has('df')) state.d_f = parseFloat(params.get('df')!);
   if (params.has('di')) state.d_i = parseFloat(params.get('di')!);
+  if (params.has('dsu')) state.d_su = parseFloat(params.get('dsu')!);
 
   // EMI
   if (params.has('ep')) state.e_p = parseFloat(params.get('ep')!);

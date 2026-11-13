@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Decimal from 'decimal.js';
 import {
   Wallet,
@@ -8,6 +8,7 @@ import {
   Sparkles,
   Layers,
   Table,
+  Swords,
 } from 'lucide-react';
 import { calculateFdr } from '@/engine/fdr';
 import { type CompoundingFrequency } from '@/engine/types';
@@ -17,10 +18,12 @@ import { KpiCard } from '@/components/controls/KpiCard';
 import { GrowthCurveChart } from '@/components/charts/GrowthCurveChart';
 import { BreakdownDonut } from '@/components/charts/BreakdownDonut';
 import { ScheduleTable, type ColumnDef } from '@/components/tables/ScheduleTable';
+import { VerdictBanner } from '@/components/VerdictBanner';
+import { ExportCardButton } from '@/components/ExportCardButton';
+import { ShareLinkButton } from '@/components/ShareLinkButton';
 import { useSettings } from '@/state/settings';
 import { useScenarios } from '@/state/scenarios';
 import { Button } from '@/components/ui/button';
-import { Swords } from 'lucide-react';
 
 interface FdrPreset {
   name: string;
@@ -39,7 +42,7 @@ const FDR_PRESETS: FdrPreset[] = [
 
 export function FdrCalculator() {
   const { formatMoney, formatShort, symbol } = useSettings();
-  const { pinScenario } = useScenarios();
+  const { pinScenario, calculatorLoadRequest, clearCalculatorLoadRequest } = useScenarios();
 
   // Inputs
   const [principal, setPrincipal] = useState<number>(100000);
@@ -52,6 +55,24 @@ export function FdrCalculator() {
   const [taxPct, setTaxPct] = useState<number>(10.0);
   const [annualFee, setAnnualFee] = useState<number>(0);
   const [inflationPct, setInflationPct] = useState<number>(6.0);
+
+  // Sync with incoming load requests from Advisor or Market Benchmarks
+  useEffect(() => {
+    if (calculatorLoadRequest && calculatorLoadRequest.tab === 'fdr') {
+      const p = calculatorLoadRequest.params;
+      if (p.principal !== undefined) setPrincipal(p.principal);
+      if (p.annualRate !== undefined) setAnnualRate(p.annualRate);
+      if (p.tenureMonths !== undefined) {
+        setTenureMonths(p.tenureMonths);
+        setTenureUnit(p.tenureMonths % 12 === 0 ? 'years' : 'months');
+      }
+      if (p.compounding !== undefined) setCompounding(p.compounding);
+      if (p.taxPct !== undefined) setTaxPct(p.taxPct);
+      if (p.annualFee !== undefined) setAnnualFee(p.annualFee);
+      if (p.inflationPct !== undefined) setInflationPct(p.inflationPct);
+      clearCalculatorLoadRequest();
+    }
+  }, [calculatorLoadRequest, clearCalculatorLoadRequest]);
 
   // View toggle: Visual analytics vs Inline schedule table
   const [viewMode, setViewMode] = useState<'visuals' | 'table'>('visuals');
@@ -102,22 +123,26 @@ export function FdrCalculator() {
     }));
   }, [result]);
 
+  // Donut slices
   const donutData = useMemo(() => {
-    const netProfit = result.netMaturity.sub(result.principal).toNumber();
     const deductions = result.totalTax.add(result.totalFees).toNumber();
-
     return [
-      { name: 'Principal', value: result.principal.toNumber(), color: 'hsl(220, 14%, 60%)' },
-      { name: 'Net Profit', value: Math.max(0, netProfit), color: 'hsl(160, 60%, 45%)' },
+      { name: 'Principal Deposited', value: result.principal.toNumber(), color: 'hsl(220, 14%, 60%)' },
+      { name: 'Net Interest Earned', value: result.netMaturity.sub(result.principal).toNumber(), color: 'hsl(160, 60%, 45%)' },
       ...(deductions > 0
-        ? [{ name: 'Tax & Fees', value: deductions, color: 'hsl(340, 65%, 55%)' }]
+        ? [{ name: 'Tax & Bank Fees', value: deductions, color: 'hsl(340, 65%, 55%)' }]
         : []),
     ];
   }, [result]);
 
-  // Table columns
+  // Table columns definition
   const tableColumns: ColumnDef<any>[] = [
-    { key: 'label', header: 'Period', align: 'left' },
+    {
+      key: 'period',
+      header: 'Period',
+      align: 'left',
+      render: (r) => <span className="font-semibold">{r.label}</span>,
+    },
     {
       key: 'grossBalance',
       header: 'Gross Balance',
@@ -128,29 +153,23 @@ export function FdrCalculator() {
       key: 'cumulativeInterest',
       header: 'Gross Interest',
       align: 'right',
-      render: (r) => formatMoney(r.cumulativeInterest),
+      render: (r) => <span className="text-indigo-600 dark:text-indigo-400 font-medium">{formatMoney(r.cumulativeInterest)}</span>,
     },
     {
       key: 'cumulativeTax',
-      header: 'Tax Deducted',
+      header: 'AIT Tax',
       align: 'right',
-      render: (r) => formatMoney(r.cumulativeTax),
-    },
-    {
-      key: 'cumulativeFees',
-      header: 'Fees Deducted',
-      align: 'right',
-      render: (r) => formatMoney(r.cumulativeFees),
+      render: (r) => <span className="text-red-600 dark:text-red-400 font-medium">-{formatMoney(r.cumulativeTax)}</span>,
     },
     {
       key: 'netBalance',
-      header: 'Net Maturity',
+      header: 'Net Balance',
       align: 'right',
-      render: (r) => <span className="font-semibold text-emerald-600 dark:text-emerald-400">{formatMoney(r.netBalance)}</span>,
+      render: (r) => <span className="font-bold text-emerald-600 dark:text-emerald-400">{formatMoney(r.netBalance)}</span>,
     },
     {
       key: 'realValue',
-      header: 'Real Value (Inflation)',
+      header: 'Inflation Value',
       align: 'right',
       render: (r) => <span className="text-amber-600 dark:text-amber-400">{formatMoney(r.realValue)}</span>,
     },
@@ -158,7 +177,7 @@ export function FdrCalculator() {
 
   return (
     <div className="space-y-6">
-      {/* Presets Bar */}
+      {/* Presets Bar & Action Controls */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 mr-1">
@@ -178,14 +197,18 @@ export function FdrCalculator() {
           ))}
         </div>
 
-        <Button
-          onClick={handlePin}
-          size="sm"
-          className="h-8 gap-1.5 text-xs font-bold rounded-xl shadow-sm bg-primary/90 hover:bg-primary text-primary-foreground"
-        >
-          <Swords className="h-3.5 w-3.5" />
-          <span>+ Pin to Arena</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <ShareLinkButton label="Share Plan" />
+          <ExportCardButton targetElementId="fdr-export-card" filename="finlens_fdr_plan.png" />
+          <Button
+            onClick={handlePin}
+            size="sm"
+            className="h-8 gap-1.5 text-xs font-bold rounded-xl shadow-sm bg-primary/90 hover:bg-primary text-primary-foreground"
+          >
+            <Swords className="h-3.5 w-3.5" />
+            <span>+ Pin to Arena</span>
+          </Button>
+        </div>
       </div>
 
       {/* Main Grid: Controls vs Visuals */}
@@ -266,7 +289,7 @@ export function FdrCalculator() {
             </div>
           </div>
 
-          {/* Reality adjustments toggles */}
+          {/* Reality adjustments toggles with Auto BD Excise Duty */}
           <RealityToggles
             taxPct={taxPct}
             onTaxPctChange={setTaxPct}
@@ -274,6 +297,7 @@ export function FdrCalculator() {
             onAnnualFeeChange={setAnnualFee}
             inflationPct={inflationPct}
             onInflationPctChange={setInflationPct}
+            currentBalance={result.grossMaturity.toNumber()}
           />
         </div>
 
@@ -321,81 +345,101 @@ export function FdrCalculator() {
             )}
           </div>
 
-          {/* KPI Cards Row (Always visible for at-a-glance decision making) */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <KpiCard
-              label="Net Maturity"
-              value={formatMoney(result.netMaturity)}
-              subtitle={`Real purchasing power: ${formatMoney(result.realPurchasingPower)}`}
-              icon={TrendingUp}
-              trend="up"
-              accentColor="text-emerald-500"
-              className="col-span-2 sm:col-span-1"
+          {/* Exportable Visual Card Container */}
+          <div id="fdr-export-card" className="space-y-4 p-1">
+            {/* Smart Advisor Verdict Banner */}
+            <VerdictBanner
+              mode="single"
+              type="fdr"
+              result={result}
+              splitSavingsTip={result.splitSavingsTip}
             />
-            <KpiCard
-              label="Net Interest"
-              value={formatMoney(result.netMaturity.sub(result.principal))}
-              subtitle={`Gross interest: ${formatMoney(result.grossInterest)}`}
-              icon={Percent}
-              trend="up"
-              accentColor="text-indigo-500"
-            />
-            <KpiCard
-              label="Effective Yield"
-              value={`${result.netEffectiveYieldPct.toFixed(2)}%`}
-              subtitle={`Nominal rate: ${annualRate.toFixed(1)}%`}
-              icon={Receipt}
-              trend="neutral"
-              accentColor="text-amber-500"
-            />
+
+            {/* KPI Cards Row (Always visible for at-a-glance decision making) */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <KpiCard
+                label="Net Maturity"
+                value={formatMoney(result.netMaturity)}
+                subtitle={`Real purchasing power: ${formatMoney(result.realPurchasingPower)}`}
+                icon={TrendingUp}
+                trend="up"
+                accentColor="text-emerald-500"
+                className="col-span-2 sm:col-span-1"
+              />
+              <KpiCard
+                label="Net Interest"
+                value={formatMoney(result.netMaturity.sub(result.principal))}
+                subtitle={`Gross interest: ${formatMoney(result.grossInterest)}`}
+                icon={Percent}
+                trend="up"
+                accentColor="text-indigo-500"
+              />
+              <KpiCard
+                label="Effective Yield"
+                value={`${result.netEffectiveYieldPct.toFixed(2)}%`}
+                subtitle={`Nominal rate: ${annualRate.toFixed(1)}%`}
+                icon={Receipt}
+                trend="neutral"
+                accentColor="text-amber-500"
+              />
+            </div>
+
+            {viewMode === 'visuals' ? (
+              <>
+                {/* Charts container */}
+                <div className="glass-card rounded-2xl p-5 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-sm font-bold text-foreground">Wealth Trajectory</h4>
+                      <p className="text-xs text-muted-foreground">Principal vs Net Value vs Inflation Discount</p>
+                    </div>
+                  </div>
+
+                  <GrowthCurveChart
+                    data={growthData}
+                    formatValue={(v: number) => formatMoney(v)}
+                    formatYAxis={(v: number) => formatShort(v)}
+                  />
+                </div>
+
+                {/* Donut breakdown */}
+                <div className="glass-card rounded-2xl p-5">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <h4 className="text-sm font-bold text-foreground">Maturity Breakdown</h4>
+                      <p className="text-xs text-muted-foreground">Principal vs Net Earnings vs Deductions</p>
+                    </div>
+                  </div>
+                  <BreakdownDonut
+                    data={donutData}
+                    centerLabel="Net Maturity"
+                    centerValue={formatShort(result.netMaturity)}
+                    formatValue={(v) => formatMoney(v)}
+                  />
+                </div>
+              </>
+            ) : (
+              /* Direct Inline Schedule Table in main view */
+              <ScheduleTable
+                id="fdr-schedule-table-direct"
+                title="FDR Compounding Schedule"
+                subtitle="Detailed breakdown showing growth, tax deduction, and inflation discounting"
+                columns={tableColumns}
+                data={result.breakdown}
+                csvFilename={`fdr_schedule_${principal}_${annualRate}pct.csv`}
+                defaultExpanded={true}
+              />
+            )}
+
+            {/* Clean Export Card Watermark Footer */}
+            <div className="flex items-center justify-between pt-3 mt-2 border-t border-border/40 text-[11px] text-muted-foreground font-mono">
+              <div className="flex items-center gap-1.5">
+                <img src="./favicon.svg" alt="FinLens" className="w-4 h-4 rounded" />
+                <span className="font-bold text-foreground">FinLens Intelligent Financial Engine</span>
+              </div>
+              <span className="text-primary font-semibold">tonmoy-saha18.github.io/FinLens</span>
+            </div>
           </div>
-
-          {viewMode === 'visuals' ? (
-            <>
-              {/* Charts container */}
-              <div className="glass-card rounded-2xl p-5 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="text-sm font-bold text-foreground">Wealth Trajectory</h4>
-                    <p className="text-xs text-muted-foreground">Principal vs Net Value vs Inflation Discount</p>
-                  </div>
-                </div>
-
-                <GrowthCurveChart
-                  data={growthData}
-                  formatValue={(v: number) => formatMoney(v)}
-                  formatYAxis={(v: number) => formatShort(v)}
-                />
-              </div>
-
-              {/* Donut breakdown */}
-              <div className="glass-card rounded-2xl p-5">
-                <div className="flex items-center justify-between mb-2">
-                  <div>
-                    <h4 className="text-sm font-bold text-foreground">Maturity Breakdown</h4>
-                    <p className="text-xs text-muted-foreground">Principal vs Net Earnings vs Deductions</p>
-                  </div>
-                </div>
-                <BreakdownDonut
-                  data={donutData}
-                  centerLabel="Net Maturity"
-                  centerValue={formatShort(result.netMaturity)}
-                  formatValue={(v) => formatMoney(v)}
-                />
-              </div>
-            </>
-          ) : (
-            /* Direct Inline Schedule Table in main view */
-            <ScheduleTable
-              id="fdr-schedule-table-direct"
-              title="FDR Compounding Schedule"
-              subtitle="Detailed breakdown showing growth, tax deduction, and inflation discounting"
-              columns={tableColumns}
-              data={result.breakdown}
-              csvFilename={`fdr_schedule_${principal}_${annualRate}pct.csv`}
-              defaultExpanded={true}
-            />
-          )}
         </div>
       </div>
 

@@ -1,4 +1,4 @@
-import { Sun, Moon, Swords, Calculator, Share2, Printer } from 'lucide-react';
+import { Sun, Moon, Swords, Calculator, Share2, Printer, Sparkles } from 'lucide-react';
 import { useSettings } from '@/state/settings';
 import { useScenarios } from '@/state/scenarios';
 import { Button } from '@/components/ui/button';
@@ -38,11 +38,11 @@ export function Navbar() {
           </div>
         </div>
 
-        {/* View Switcher: Single vs Arena */}
+        {/* View Switcher: Single vs Advisor vs Arena */}
         <div className="flex items-center bg-muted/70 p-1 rounded-xl border border-border/60 text-xs font-semibold">
           <button
             onClick={() => setActiveView('single')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+            className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg transition-all ${
               activeView === 'single'
                 ? 'bg-background text-foreground shadow-sm font-bold text-primary'
                 : 'text-muted-foreground hover:text-foreground'
@@ -53,15 +53,31 @@ export function Navbar() {
           </button>
 
           <button
+            onClick={() => setActiveView('advisor')}
+            className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg transition-all ${
+              activeView === 'advisor'
+                ? 'bg-background text-foreground shadow-sm font-bold text-primary'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+            <span>Bank Rates & Advisor</span>
+            <span className="hidden lg:inline text-[9px] font-black uppercase px-1.5 py-0.2 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400">
+              Best Plans
+            </span>
+          </button>
+
+          <button
             onClick={() => setActiveView('arena')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+            className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg transition-all ${
               activeView === 'arena'
                 ? 'bg-background text-foreground shadow-sm font-bold text-primary'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             <Swords className="w-3.5 h-3.5" />
-            <span>Scenario Arena</span>
+            <span className="hidden sm:inline">Scenario Arena</span>
+            <span className="sm:hidden">Arena</span>
             {pinnedScenarios.length > 0 && (
               <span className="ml-0.5 text-[10px] px-1.5 py-0.2 rounded-full bg-primary text-primary-foreground font-mono">
                 {pinnedScenarios.length}

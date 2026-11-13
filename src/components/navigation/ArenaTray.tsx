@@ -16,7 +16,7 @@ export function ArenaTray() {
       )}
 
       {/* Floating Arena Tray */}
-      {activeView === 'single' && pinnedScenarios.length > 0 && (
+      {activeView !== 'arena' && pinnedScenarios.length > 0 && (
         <div className="fixed bottom-5 right-5 z-40 animate-slide-in">
           <div className="glass-card rounded-2xl p-2.5 sm:px-4 sm:py-3 shadow-2xl border border-primary/40 flex items-center gap-3">
             <div className="flex items-center gap-2">

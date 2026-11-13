@@ -11,6 +11,7 @@ import {
   type FdrPeriodBreakdown,
   compoundingPeriodsPerYear,
 } from './types';
+import { detectSplitSavings } from './adjustments';
 
 /**
  * Calculate FDR maturity with period-by-period breakdown.
@@ -187,6 +188,9 @@ export function calculateFdr(input: FdrInput): FdrResult {
     Decimal.add(1, inflationRate).pow(tenureYears)
   );
 
+  // Smart split optimizer for BD excise duty
+  const splitSavingsTip = detectSplitSavings(grossMaturity, tenureYears.toNumber());
+
   return {
     principal,
     grossMaturity,
@@ -197,5 +201,6 @@ export function calculateFdr(input: FdrInput): FdrResult {
     netEffectiveYieldPct,
     realPurchasingPower,
     breakdown,
+    splitSavingsTip,
   };
 }

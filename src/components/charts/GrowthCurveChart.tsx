@@ -15,6 +15,7 @@ export interface GrowthDataPoint {
   grossBalance: number;
   netBalance: number;
   realValue: number;
+  flatNetBalance?: number;
 }
 
 interface GrowthCurveChartProps {
@@ -140,6 +141,19 @@ export function GrowthCurveChart({
             dot={false}
             activeDot={{ r: 4, strokeWidth: 2 }}
           />
+          {data.some((d) => d.flatNetBalance !== undefined) && (
+            <Area
+              type="monotone"
+              dataKey="flatNetBalance"
+              name="Flat DPS (0% Step-Up)"
+              stroke="hsl(280, 60%, 55%)"
+              strokeDasharray="3 3"
+              fill="none"
+              strokeWidth={2}
+              dot={false}
+              activeDot={{ r: 4, strokeWidth: 2 }}
+            />
+          )}
         </AreaChart>
       </ResponsiveContainer>
     </div>

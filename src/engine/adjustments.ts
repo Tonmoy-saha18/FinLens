@@ -49,6 +49,90 @@ export function deductFees(
   return value.sub(annualFee.mul(yearsElapsed));
 }
 
+// ─── Bangladesh Excise Duty (FY 2026-27 Tiered Schedule) ───────
+
+export const BD_EXCISE_TIERS = [
+  { max: new Decimal(400000), duty: new Decimal(0), label: 'Up to ৳4 Lakh' },
+  { max: new Decimal(500000), duty: new Decimal(150), label: '৳4,00,001 – ৳5,00,000' },
+  { max: new Decimal(1000000), duty: new Decimal(500), label: '৳5,00,001 – ৳10,00,000' },
+  { max: new Decimal(5000000), duty: new Decimal(3000), label: '৳10,00,001 – ৳50,00,000' },
+  { max: new Decimal(10000000), duty: new Decimal(5000), label: '৳50,00,001 – ৳1,00,00,000' },
+  { max: null, duty: new Decimal(10000), label: 'Above ৳1,00,00,000' },
+] as const;
+
+/**
+ * Calculate annual Bangladesh Bank Excise Duty based on peak account balance.
+ * Uses exact FY 2026-27 NBR slabs:
+ * - Up to 4,00,000: 0
+ * - 4,00,001 to 5,00,000: 150/yr
+ * - 5,00,001 to 10,00,000: 500/yr
+ * - 10,00,001 to 50,00,000: 3,000/yr
+ * - 50,00,001 to 1,00,00,000: 5,000/yr
+ * - Above 1,00,00,000: 10,000/yr
+ */
+export function calculateBdExciseDuty(balance: Decimal): Decimal {
+  if (balance.lte(400000)) return new Decimal(0);
+  if (balance.lte(500000)) return new Decimal(150);
+  if (balance.lte(1000000)) return new Decimal(500);
+  if (balance.lte(5000000)) return new Decimal(3000);
+  if (balance.lte(10000000)) return new Decimal(5000);
+  return new Decimal(10000);
+}
+
+/**
+ * Returns the Source Tax / AIT percentage based on TIN / PSR submission:
+ * - 10% with TIN / Proof of Submission of Return (PSR)
+ * - 15% without TIN
+ */
+export function getTaxRateForTin(hasTin: boolean): Decimal {
+  return hasTin ? new Decimal(10) : new Decimal(15);
+}
+
+/**
+ * Smart Split Optimizer:
+ * Analyzes whether splitting a balance across 2 separate accounts or family members
+ * drops the account into a lower excise duty bracket, saving money every year.
+ */
+export function detectSplitSavings(
+  maxBalance: Decimal,
+  tenureYears: number,
+  symbol: string = '৳'
+): import('./types').SplitSavingsTip {
+  const originalExcise = calculateBdExciseDuty(maxBalance);
+
+  // Split into 2 equal accounts
+  const halfBalance = maxBalance.div(2);
+  const halfExcise = calculateBdExciseDuty(halfBalance);
+  const splitExcise = halfExcise.mul(2);
+
+  const annualSavings = originalExcise.sub(splitExcise);
+  const years = Math.max(1, Math.round(tenureYears));
+  const totalSavingsOverTenure = annualSavings.mul(years);
+
+  if (annualSavings.gt(0)) {
+    const formattedHalf = `${symbol}${formatCompact(halfBalance, 'south-asian')}`;
+    return {
+      canSave: true,
+      originalExcisePerYear: originalExcise,
+      splitExcisePerYear: splitExcise,
+      annualSavings,
+      totalSavingsOverTenure,
+      recommendedSplit: `2 × ${formattedHalf}`,
+      description: `Splitting this deposit into two separate accounts (${formattedHalf} each) drops your excise bracket from ${symbol}${originalExcise.toNumber().toLocaleString()}/yr to ${symbol}${splitExcise.toNumber().toLocaleString()}/yr, saving ${symbol}${annualSavings.toNumber().toLocaleString()} annually (${symbol}${totalSavingsOverTenure.toNumber().toLocaleString()} over ${years} yrs).`,
+    };
+  }
+
+  return {
+    canSave: false,
+    originalExcisePerYear: originalExcise,
+    splitExcisePerYear: originalExcise,
+    annualSavings: new Decimal(0),
+    totalSavingsOverTenure: new Decimal(0),
+    recommendedSplit: '',
+    description: 'Your balance is already in the optimal excise duty bracket.',
+  };
+}
+
 // ─── Currency Formatting ────────────────────────────────────────
 
 export type NumberSystem = 'south-asian' | 'international';
