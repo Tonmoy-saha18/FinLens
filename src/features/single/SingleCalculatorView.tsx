@@ -3,8 +3,6 @@ import {
   Wallet,
   Coins,
   CreditCard,
-  Sparkles,
-  ArrowRight,
 } from 'lucide-react';
 import { FdrCalculator } from './FdrCalculator';
 import { DpsCalculator } from './DpsCalculator';
@@ -17,7 +15,7 @@ export type CalculatorTab = 'fdr' | 'dps' | 'emi';
 export function SingleCalculatorView() {
   const [activeTab, setActiveTab] = useState<CalculatorTab>('fdr');
   const [selectedPresetId, setSelectedPresetId] = useState<string | undefined>();
-  const { calculatorLoadRequest, loadIntoCalculator, setActiveView } = useScenarios();
+  const { calculatorLoadRequest, loadIntoCalculator } = useScenarios();
 
   useEffect(() => {
     if (calculatorLoadRequest) {
@@ -51,32 +49,6 @@ export function SingleCalculatorView() {
         onSelectPreset={handleSelectMarketPreset}
         activePresetId={selectedPresetId}
       />
-
-      {/* Advisor Quick Link Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-gradient-to-r from-primary/[0.08] via-background to-background border border-primary/25 text-xs">
-        <div className="flex items-center gap-2.5">
-          <div className="p-1.5 rounded-xl bg-primary/10 text-primary shrink-0">
-            <Sparkles className="w-4 h-4" />
-          </div>
-          <div>
-            <span className="font-bold text-foreground block sm:text-xs">
-              Unsure which bank or investment scheme to choose?
-            </span>
-            <span className="text-muted-foreground text-[11px]">
-              Compare 11.52% Sanchayapatra vs BRAC, City, EBL, DBBL & IDLC with institutional credit safety & inflation checks.
-            </span>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setActiveView('advisor')}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary text-primary-foreground font-bold hover:opacity-90 transition-opacity self-start sm:self-auto shrink-0 shadow-sm shadow-primary/25 text-xs"
-        >
-          <span>Bank Rates Directory & Advisor</span>
-          <ArrowRight className="w-3.5 h-3.5" />
-        </button>
-      </div>
 
       {/* Tab Switcher */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/70 pb-4">

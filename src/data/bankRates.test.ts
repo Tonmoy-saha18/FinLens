@@ -5,6 +5,7 @@ import {
   BANK_SCHEMES,
   getSmartRecommendation,
   ADVISORY_PILLARS,
+  RATES_METADATA,
 } from './bankRates';
 import { calculateFdr } from '@/engine/fdr';
 import { calculateDps } from '@/engine/dps';
@@ -122,5 +123,14 @@ describe('Advisory Pillars Integrity', () => {
     expect(ids).toContain('inflation-hurdle');
     expect(ids).toContain('tax-optimization');
     expect(ids).toContain('loan-prepayment-power');
+  });
+
+  it('should have valid rates metadata and verification timestamps', () => {
+    expect(RATES_METADATA.lastUpdated).toBeTruthy();
+    expect(RATES_METADATA.nextReviewDate).toBeTruthy();
+    expect(RATES_METADATA.sourceBulletin).toBeTruthy();
+    expect(RATES_METADATA.policyRatePct).toBeGreaterThan(0);
+    expect(RATES_METADATA.inflationBenchmarkPct).toBeGreaterThan(0);
+    expect(RATES_METADATA.depositInsuranceCap).toBe(200000);
   });
 });
