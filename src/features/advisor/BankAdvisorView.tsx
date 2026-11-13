@@ -1,11 +1,9 @@
 import { useState, useMemo } from 'react';
 import Decimal from 'decimal.js';
 import {
-  Sparkles,
   ShieldCheck,
   Search,
   ArrowRight,
-  Building2,
   Coins,
   Wallet,
   CreditCard,
@@ -15,6 +13,7 @@ import {
   ChevronUp,
   Info,
   Award,
+  Layers,
 } from 'lucide-react';
 import {
   BANK_SCHEMES,
@@ -23,6 +22,12 @@ import {
   getSmartRecommendation,
   type BankScheme,
 } from '@/data/bankRates';
+import { calculateFdr } from '@/engine/fdr';
+import { calculateDps } from '@/engine/dps';
+import { calculateEmi } from '@/engine/emi';
+import { useSettings } from '@/state/settings';
+import { useScenarios } from '@/state/scenarios';
+import { Button } from '@/components/ui/button';
 
 type TopPickProjection =
   | {
@@ -48,34 +53,28 @@ type TopPickProjection =
       totalInterest: Decimal;
       tenureDisplay: string;
     };
-import { calculateFdr } from '@/engine/fdr';
-import { calculateDps } from '@/engine/dps';
-import { calculateEmi } from '@/engine/emi';
-import { useSettings } from '@/state/settings';
-import { useScenarios } from '@/state/scenarios';
-import { Button } from '@/components/ui/button';
 
 function renderSimulationBox(proj: TopPickProjection, formatMoney: (val: Decimal | number) => string) {
   if (proj.type === 'fdr') {
     return (
       <>
-        <div>
-          <span className="text-muted-foreground uppercase text-[10px] font-bold block">Simulated Deposit:</span>
-          <span className="text-base font-extrabold text-foreground font-mono">
+        <div className="p-3 rounded-xl bg-card border border-border/70">
+          <span className="text-muted-foreground uppercase text-[10px] font-bold block">Deposit Capital</span>
+          <span className="text-base font-extrabold text-foreground font-mono mt-0.5 block">
             {formatMoney(proj.amount)}
           </span>
-          <span className="text-[11px] text-muted-foreground block">Tenure: {proj.tenureDisplay}</span>
+          <span className="text-[11px] text-muted-foreground">Tenure: {proj.tenureDisplay}</span>
         </div>
-        <div>
-          <span className="text-muted-foreground uppercase text-[10px] font-bold block">Gross Interest Earned:</span>
-          <span className="text-base font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">
+        <div className="p-3 rounded-xl bg-card border border-border/70">
+          <span className="text-muted-foreground uppercase text-[10px] font-bold block">Gross Interest Earned</span>
+          <span className="text-base font-extrabold text-emerald-600 dark:text-emerald-400 font-mono mt-0.5 block">
             +{formatMoney(proj.grossInterest)}
           </span>
-          <span className="text-[11px] text-muted-foreground block">Tax (10%): -{formatMoney(proj.totalTax)}</span>
+          <span className="text-[11px] text-muted-foreground">Tax (10%): -{formatMoney(proj.totalTax)}</span>
         </div>
-        <div className="bg-primary/10 p-2.5 rounded-lg border border-primary/20">
-          <span className="text-primary uppercase text-[10px] font-black block">Net Take-Home Maturity:</span>
-          <span className="text-lg font-black text-primary font-mono block">
+        <div className="p-3 rounded-xl bg-primary/10 border border-primary/20">
+          <span className="text-primary uppercase text-[10px] font-black block">Net Take-Home Maturity</span>
+          <span className="text-lg font-black text-primary font-mono mt-0.5 block">
             {formatMoney(proj.netMaturity)}
           </span>
           <span className="text-[10px] text-muted-foreground">After tax & fees</span>
@@ -87,25 +86,25 @@ function renderSimulationBox(proj: TopPickProjection, formatMoney: (val: Decimal
   if (proj.type === 'dps') {
     return (
       <>
-        <div>
-          <span className="text-muted-foreground uppercase text-[10px] font-bold block">Monthly Installment:</span>
-          <span className="text-base font-extrabold text-foreground font-mono">
+        <div className="p-3 rounded-xl bg-card border border-border/70">
+          <span className="text-muted-foreground uppercase text-[10px] font-bold block">Monthly Installment</span>
+          <span className="text-base font-extrabold text-foreground font-mono mt-0.5 block">
             {formatMoney(proj.amount)}/mo
           </span>
-          <span className="text-[11px] text-muted-foreground block">Tenure: {proj.tenureDisplay}</span>
+          <span className="text-[11px] text-muted-foreground">Tenure: {proj.tenureDisplay}</span>
         </div>
-        <div>
-          <span className="text-muted-foreground uppercase text-[10px] font-bold block">Total Deposited:</span>
-          <span className="text-base font-extrabold text-foreground font-mono">
+        <div className="p-3 rounded-xl bg-card border border-border/70">
+          <span className="text-muted-foreground uppercase text-[10px] font-bold block">Total Deposited</span>
+          <span className="text-base font-extrabold text-foreground font-mono mt-0.5 block">
             {formatMoney(proj.totalDeposited)}
           </span>
-          <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold block">
+          <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">
             Profit: +{formatMoney(proj.grossInterest)}
           </span>
         </div>
-        <div className="bg-primary/10 p-2.5 rounded-lg border border-primary/20">
-          <span className="text-primary uppercase text-[10px] font-black block">Net Maturity Payout:</span>
-          <span className="text-lg font-black text-primary font-mono block">
+        <div className="p-3 rounded-xl bg-primary/10 border border-primary/20">
+          <span className="text-primary uppercase text-[10px] font-black block">Net Maturity Payout</span>
+          <span className="text-lg font-black text-primary font-mono mt-0.5 block">
             {formatMoney(proj.netMaturity)}
           </span>
           <span className="text-[10px] text-muted-foreground">Compound wealth creation</span>
@@ -116,26 +115,26 @@ function renderSimulationBox(proj: TopPickProjection, formatMoney: (val: Decimal
 
   return (
     <>
-      <div>
-        <span className="text-muted-foreground uppercase text-[10px] font-bold block">Loan Principal:</span>
-        <span className="text-base font-extrabold text-foreground font-mono">
+      <div className="p-3 rounded-xl bg-card border border-border/70">
+        <span className="text-muted-foreground uppercase text-[10px] font-bold block">Loan Principal</span>
+        <span className="text-base font-extrabold text-foreground font-mono mt-0.5 block">
           {formatMoney(proj.amount)}
         </span>
-        <span className="text-[11px] text-muted-foreground block">Tenure: {proj.tenureDisplay}</span>
+        <span className="text-[11px] text-muted-foreground">Tenure: {proj.tenureDisplay}</span>
       </div>
-      <div>
-        <span className="text-muted-foreground uppercase text-[10px] font-bold block">Total Bank Interest:</span>
-        <span className="text-base font-extrabold text-destructive font-mono">
+      <div className="p-3 rounded-xl bg-card border border-border/70">
+        <span className="text-muted-foreground uppercase text-[10px] font-bold block">Total Bank Interest</span>
+        <span className="text-base font-extrabold text-destructive font-mono mt-0.5 block">
           {formatMoney(proj.totalInterest)}
         </span>
-        <span className="text-[11px] text-muted-foreground block">Slide extra prepay to cut in half</span>
+        <span className="text-[11px] text-muted-foreground">Prepay extra to cut interest</span>
       </div>
-      <div className="bg-primary/10 p-2.5 rounded-lg border border-primary/20">
-        <span className="text-primary uppercase text-[10px] font-black block">Estimated Monthly EMI:</span>
-        <span className="text-lg font-black text-primary font-mono block">
+      <div className="p-3 rounded-xl bg-primary/10 border border-primary/20">
+        <span className="text-primary uppercase text-[10px] font-black block">Estimated Monthly EMI</span>
+        <span className="text-lg font-black text-primary font-mono mt-0.5 block">
           {formatMoney(proj.baseEmi)}
         </span>
-        <span className="text-[10px] text-muted-foreground">Excluding insurance & fees</span>
+        <span className="text-[10px] text-muted-foreground">Excluding processing fee</span>
       </div>
     </>
   );
@@ -143,7 +142,7 @@ function renderSimulationBox(proj: TopPickProjection, formatMoney: (val: Decimal
 
 export function BankAdvisorView() {
   const { formatMoney, symbol } = useSettings();
-  const { loadIntoCalculator, pinBankScheme, setActiveView } = useScenarios();
+  const { loadIntoCalculator, pinBankScheme } = useScenarios();
 
   // Wizard state for "Find My Best Plan"
   const [goal, setGoal] = useState<'fdr' | 'dps' | 'loan'>('fdr');
@@ -282,106 +281,67 @@ export function BankAdvisorView() {
   };
 
   return (
-    <div className="space-y-10 animate-fade-in pb-16">
-      {/* ── Header & Market Overview Bar ── */}
-      <section className="space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold uppercase tracking-wider mb-2">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>FinLens Market Intelligence & Advisory</span>
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-              Current Best Investment Plans & Bank Rates
-            </h2>
-            <p className="text-sm text-muted-foreground mt-1 max-w-3xl leading-relaxed">
-              Real-world interest rates across FDR, DPS, and Loans in Bangladesh. Factoring in institutional credit safety, Source Tax (AIT), excise duties, and inflation to answer: <strong className="text-foreground">Which scheme is truly worth considering?</strong>
-            </p>
+    <div className="space-y-8 animate-fade-in pb-16">
+      {/* ── Macro Financial Pulse Bar ── */}
+      <section className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <div className="p-3.5 rounded-2xl bg-card border border-border/70 shadow-sm">
+          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">
+            Top FDR Rate
+          </span>
+          <div className="flex items-baseline gap-1.5 mt-1">
+            <span className="text-xl sm:text-2xl font-black font-mono text-foreground">11.52%</span>
+            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">Govt Sanchaya</span>
           </div>
-
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setActiveView('single')}
-              className="text-xs font-semibold gap-1.5 rounded-xl"
-            >
-              <Wallet className="w-3.5 h-3.5 text-primary" />
-              <span>Open Calculators</span>
-            </Button>
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => setActiveView('arena')}
-              className="text-xs font-semibold gap-1.5 rounded-xl shadow-sm"
-            >
-              <Swords className="w-3.5 h-3.5" />
-              <span>Go to Arena</span>
-            </Button>
-          </div>
+          <span className="text-[10px] text-muted-foreground mt-0.5 block">10.5%–11.0% in Top Banks</span>
         </div>
 
-        {/* Live Macro Market Benchmarks */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-2">
-          <div className="p-3.5 rounded-2xl bg-card border border-border/70 shadow-sm">
-            <span className="text-[11px] font-semibold text-muted-foreground uppercase block">
-              Top FDR Yield
-            </span>
-            <div className="flex items-baseline gap-1 mt-1">
-              <span className="text-xl sm:text-2xl font-extrabold font-mono text-foreground">11.52%</span>
-              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">Govt / Sanchaya</span>
-            </div>
-            <span className="text-[10px] text-muted-foreground mt-0.5 block">10.5%-11.0% in Top Banks</span>
+        <div className="p-3.5 rounded-2xl bg-card border border-border/70 shadow-sm">
+          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">
+            Top DPS Rate
+          </span>
+          <div className="flex items-baseline gap-1.5 mt-1">
+            <span className="text-xl sm:text-2xl font-black font-mono text-foreground">10.50%</span>
+            <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold">BRAC / City / EBL</span>
           </div>
+          <span className="text-[10px] text-muted-foreground mt-0.5 block">Monthly compounding</span>
+        </div>
 
-          <div className="p-3.5 rounded-2xl bg-card border border-border/70 shadow-sm">
-            <span className="text-[11px] font-semibold text-muted-foreground uppercase block">
-              Top DPS Yield
-            </span>
-            <div className="flex items-baseline gap-1 mt-1">
-              <span className="text-xl sm:text-2xl font-extrabold font-mono text-foreground">10.50%</span>
-              <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold">BRAC / City / EBL</span>
-            </div>
-            <span className="text-[10px] text-muted-foreground mt-0.5 block">Compound monthly growth</span>
+        <div className="p-3.5 rounded-2xl bg-card border border-border/70 shadow-sm">
+          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">
+            Lowest Home Loan
+          </span>
+          <div className="flex items-baseline gap-1.5 mt-1">
+            <span className="text-xl sm:text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400">12.50%</span>
+            <span className="text-[10px] text-muted-foreground font-semibold">DBBL</span>
           </div>
+          <span className="text-[10px] text-muted-foreground mt-0.5 block">12.75% BRAC (0% prepay)</span>
+        </div>
 
-          <div className="p-3.5 rounded-2xl bg-card border border-border/70 shadow-sm">
-            <span className="text-[11px] font-semibold text-muted-foreground uppercase block">
-              Lowest Home Loan
-            </span>
-            <div className="flex items-baseline gap-1 mt-1">
-              <span className="text-xl sm:text-2xl font-extrabold font-mono text-emerald-600 dark:text-emerald-400">12.50%</span>
-              <span className="text-[10px] text-muted-foreground font-semibold">DBBL</span>
-            </div>
-            <span className="text-[10px] text-muted-foreground mt-0.5 block">12.75% BRAC (0% prepay)</span>
+        <div className="p-3.5 rounded-2xl bg-card border border-border/70 shadow-sm">
+          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">
+            Inflation Hurdle
+          </span>
+          <div className="flex items-baseline gap-1.5 mt-1">
+            <span className="text-xl sm:text-2xl font-black font-mono text-amber-600 dark:text-amber-400">~9.50%</span>
+            <span className="text-[10px] text-amber-500 font-bold">CPI Rate</span>
           </div>
+          <span className="text-[10px] text-muted-foreground mt-0.5 block">Need &gt;10.5% for real gain</span>
+        </div>
 
-          <div className="p-3.5 rounded-2xl bg-card border border-border/70 shadow-sm">
-            <span className="text-[11px] font-semibold text-muted-foreground uppercase block">
-              Inflation Hurdle
-            </span>
-            <div className="flex items-baseline gap-1 mt-1">
-              <span className="text-xl sm:text-2xl font-extrabold font-mono text-amber-600 dark:text-amber-400">~9.50%</span>
-              <span className="text-[10px] text-amber-500 font-bold">CPI Rate</span>
-            </div>
-            <span className="text-[10px] text-muted-foreground mt-0.5 block">Need &gt;10.5% for real gain</span>
+        <div className="p-3.5 rounded-2xl bg-card border border-border/70 shadow-sm col-span-2 sm:col-span-1">
+          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">
+            Deposit Insurance
+          </span>
+          <div className="flex items-baseline gap-1.5 mt-1">
+            <span className="text-xl sm:text-2xl font-black font-mono text-primary">৳2.00L</span>
+            <span className="text-[10px] text-muted-foreground font-medium">BD Bank</span>
           </div>
-
-          <div className="p-3.5 rounded-2xl bg-card border border-border/70 shadow-sm col-span-2 sm:col-span-1">
-            <span className="text-[11px] font-semibold text-muted-foreground uppercase block">
-              Deposit Insurance
-            </span>
-            <div className="flex items-baseline gap-1 mt-1">
-              <span className="text-xl sm:text-2xl font-extrabold font-mono text-primary">৳2.00L</span>
-              <span className="text-[10px] text-muted-foreground font-medium">BD Bank</span>
-            </div>
-            <span className="text-[10px] text-muted-foreground mt-0.5 block">Max state protection</span>
-          </div>
+          <span className="text-[10px] text-muted-foreground mt-0.5 block">Per depositor cap</span>
         </div>
       </section>
 
       {/* ── SECTION 1: Interactive "Find My Best Plan" Wizard ── */}
-      <section className="rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/[0.05] via-card to-card p-5 sm:p-7 shadow-lg shadow-primary/5 space-y-6">
+      <section className="rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/[0.04] via-card to-card p-5 sm:p-7 shadow-lg shadow-primary/5 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-4">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-2xl bg-primary text-primary-foreground shadow-md shadow-primary/30">
@@ -389,15 +349,15 @@ export function BankAdvisorView() {
             </div>
             <div>
               <span className="text-[11px] font-bold uppercase tracking-wider text-primary">
-                Instant Recommendation Engine
+                Smart Advisor
               </span>
-              <h3 className="text-lg sm:text-xl font-extrabold text-foreground">
+              <h2 className="text-lg sm:text-xl font-extrabold text-foreground">
                 Find Your Best Financial Plan in 3 Clicks
-              </h3>
+              </h2>
             </div>
           </div>
-          <span className="text-xs text-muted-foreground">
-            Personalized against real tax & inflation figures
+          <span className="text-xs text-muted-foreground font-medium">
+            Factoring in institutional safety, source tax & inflation
           </span>
         </div>
 
@@ -405,8 +365,8 @@ export function BankAdvisorView() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {/* Step 1: Goal */}
           <div className="space-y-2">
-            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-              <span>1. Your Financial Goal:</span>
+            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block">
+              1. Your Financial Goal:
             </label>
             <div className="grid grid-cols-3 gap-1.5 p-1 bg-muted/60 rounded-xl border border-border/60">
               <button
@@ -447,8 +407,8 @@ export function BankAdvisorView() {
 
           {/* Step 2: Priority */}
           <div className="space-y-2">
-            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-              <span>2. Your Priority:</span>
+            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block">
+              2. Your Priority:
             </label>
             <div className="grid grid-cols-4 gap-1 p-1 bg-muted/60 rounded-xl border border-border/60">
               <button
@@ -500,7 +460,7 @@ export function BankAdvisorView() {
 
           {/* Step 3: Capital Budget */}
           <div className="space-y-2">
-            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block">
               {goal === 'fdr' ? '3. Lump Sum Deposit:' : goal === 'dps' ? '3. Monthly Savings Budget:' : '3. Loan Requirement:'}
             </label>
             <div className="flex items-center gap-2">
@@ -513,7 +473,7 @@ export function BankAdvisorView() {
                       onClick={() => setCapitalTier(amt)}
                       className={`py-2 px-1 text-center rounded-xl text-xs font-semibold border transition-all ${
                         capitalTier === amt
-                          ? 'bg-primary text-primary-foreground border-primary font-bold'
+                          ? 'bg-primary text-primary-foreground border-primary font-bold shadow-sm'
                           : 'bg-muted/40 border-border/70 text-foreground hover:bg-muted'
                       }`}
                     >
@@ -531,7 +491,7 @@ export function BankAdvisorView() {
                       onClick={() => setCapitalTier(amt)}
                       className={`py-2 px-1 text-center rounded-xl text-xs font-semibold border transition-all ${
                         capitalTier === amt
-                          ? 'bg-primary text-primary-foreground border-primary font-bold'
+                          ? 'bg-primary text-primary-foreground border-primary font-bold shadow-sm'
                           : 'bg-muted/40 border-border/70 text-foreground hover:bg-muted'
                       }`}
                     >
@@ -549,7 +509,7 @@ export function BankAdvisorView() {
                       onClick={() => setCapitalTier(amt)}
                       className={`py-2 px-1 text-center rounded-xl text-xs font-semibold border transition-all ${
                         capitalTier === amt
-                          ? 'bg-primary text-primary-foreground border-primary font-bold'
+                          ? 'bg-primary text-primary-foreground border-primary font-bold shadow-sm'
                           : 'bg-muted/40 border-border/70 text-foreground hover:bg-muted'
                       }`}
                     >
@@ -565,10 +525,10 @@ export function BankAdvisorView() {
         {/* Dynamic Recommendation Result Card */}
         <div className="rounded-2xl border border-primary/40 bg-card p-5 sm:p-6 shadow-md space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-extrabold uppercase tracking-wide border border-emerald-500/20">
-                  ★ FinLens Top Pick
+                  ★ FinLens Top Recommended Plan
                 </span>
                 <span className="px-2.5 py-0.5 rounded-full bg-muted text-muted-foreground text-xs font-semibold border border-border/70">
                   {recommendation.topPick.bankShort}
@@ -577,18 +537,18 @@ export function BankAdvisorView() {
                   {recommendation.topPick.creditRating}
                 </span>
               </div>
-              <h4 className="text-xl sm:text-2xl font-black text-foreground">
+              <h3 className="text-xl sm:text-2xl font-black text-foreground">
                 {recommendation.summaryTitle}
-              </h4>
+              </h3>
               <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-3xl">
                 {recommendation.verdictExplanation}
               </p>
             </div>
 
-            {/* Headline Rate & Action */}
+            {/* Headline Rate */}
             <div className="sm:text-right shrink-0 p-3 sm:p-0 rounded-xl bg-muted/30 sm:bg-transparent">
               <span className="text-[11px] uppercase font-bold text-muted-foreground block">
-                {recommendation.topPick.type === 'loan' ? 'Effective Borrowing Rate' : 'Annual Return / Profit'}
+                {recommendation.topPick.type === 'loan' ? 'Borrowing Rate' : 'Annual Return / Profit'}
               </span>
               <span className="text-3xl sm:text-4xl font-black text-primary font-mono block mt-0.5">
                 {recommendation.topPick.headlineRate}%
@@ -600,7 +560,7 @@ export function BankAdvisorView() {
           </div>
 
           {/* Quick Engine Simulation Box */}
-          <div className="p-4 rounded-xl bg-muted/40 border border-border/70 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
             {renderSimulationBox(topPickProjection, formatMoney)}
           </div>
 
@@ -648,13 +608,13 @@ export function BankAdvisorView() {
         <div>
           <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-primary">
             <Scale className="w-4 h-4" />
-            <span>Financial Advisory Knowledge Base</span>
+            <span>Essential Decision Guide</span>
           </div>
           <h3 className="text-xl sm:text-2xl font-black text-foreground mt-0.5">
-            Which Bank & Plan is Truly Worth Considering?
+            Which Scheme is Truly Worth Considering?
           </h3>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-3xl">
-            Don’t get fooled by advertised headline rates alone. Here is how institutional credit safety, inflation hurdles, tax certificates, and prepayment penalties dictate real wealth outcomes.
+            Brochure numbers don't tell the whole story. Here is what really impacts your wallet:
           </p>
         </div>
 
@@ -715,99 +675,19 @@ export function BankAdvisorView() {
         </div>
       </section>
 
-      {/* ── SECTION 3: Curated Editor's Choice Spotlight ── */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-amber-500">
-              <Award className="w-4 h-4" />
-              <span>Editor's Marquee Selection</span>
-            </div>
-            <h3 className="text-xl sm:text-2xl font-black text-foreground">
-              Market Benchmarks to Pin & Compare
-            </h3>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {BANK_SCHEMES.filter((s) => s.featuredBadge).slice(0, 4).map((scheme) => (
-            <div
-              key={scheme.id}
-              className="rounded-2xl border border-border/80 bg-card p-4 sm:p-5 shadow-sm hover:border-primary/50 transition-all flex flex-col justify-between space-y-4 group"
-            >
-              <div className="space-y-2.5">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                    {scheme.featuredBadge}
-                  </span>
-                  <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-md bg-muted text-muted-foreground">
-                    {scheme.creditRating.split(' ')[0]}
-                  </span>
-                </div>
-
-                <div>
-                  <span className="text-xs font-semibold text-muted-foreground block">
-                    {scheme.bankShort}
-                  </span>
-                  <h4 className="text-sm font-extrabold text-foreground group-hover:text-primary transition-colors">
-                    {scheme.schemeName}
-                  </h4>
-                </div>
-
-                <div className="py-2 border-y border-border/60">
-                  <span className="text-[10px] uppercase font-bold text-muted-foreground block">
-                    {scheme.type === 'loan' ? 'Starting Rate' : 'Annual Yield'}
-                  </span>
-                  <span className="text-2xl font-black font-mono text-primary">
-                    {scheme.headlineRate}%
-                  </span>
-                  <span className="text-[11px] text-muted-foreground block mt-0.5">
-                    {scheme.tenureDisplay}
-                  </span>
-                </div>
-
-                <p className="text-[11px] text-muted-foreground line-clamp-3 leading-relaxed">
-                  {scheme.whyConsider}
-                </p>
-              </div>
-
-              <div className="pt-2 border-t border-border/60 flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePinToArena(scheme)}
-                  className="flex-1 text-[11px] font-bold h-8 rounded-xl"
-                  title="Pin to Scenario Arena"
-                >
-                  <Swords className="w-3 h-3 text-amber-500 mr-1" />
-                  <span>Pin</span>
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={() => handleLoadScheme(scheme)}
-                  className="flex-1 text-[11px] font-bold h-8 rounded-xl"
-                >
-                  <span>Calculate</span>
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── SECTION 4: Comprehensive Bank Rates Directory & Matrix ── */}
+      {/* ── SECTION 3: Comprehensive Bank Rates Directory ── */}
       <section className="space-y-5">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-border/70 pb-4">
           <div>
             <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-primary">
-              <Building2 className="w-4 h-4" />
-              <span>Full Market Directory</span>
+              <Layers className="w-4 h-4" />
+              <span>Full Bank Rates Directory</span>
             </div>
             <h3 className="text-xl sm:text-2xl font-black text-foreground">
-              Explore All Bank Schemes & Rates
+              Compare All Bank Schemes
             </h3>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Filter by product type, search by bank, or sort by rates to find the exact plan for your portfolio.
+              Filter by product type, search by bank, or sort by rates to find the exact plan for your goals.
             </p>
           </div>
 
@@ -844,12 +724,12 @@ export function BankAdvisorView() {
         {/* Tab Filter Pills */}
         <div className="flex flex-wrap items-center gap-1.5 p-1 bg-muted/60 rounded-2xl border border-border/60 self-start text-xs font-semibold">
           {[
-            { id: 'all', label: 'All Schemes', icon: LayersIcon },
+            { id: 'all', label: 'All Schemes', icon: Layers },
             { id: 'fdr', label: 'FDR / Fixed Deposits', icon: Wallet },
             { id: 'dps', label: 'DPS / Monthly Recurring', icon: Coins },
             { id: 'loan', label: 'Loans (Home & Personal)', icon: CreditCard },
             { id: 'islamic', label: '100% Shariah Halal', icon: ShieldCheck },
-            { id: 'govt', label: 'Sovereign / Sanchaya', icon: Building2 },
+            { id: 'govt', label: 'Sovereign / Sanchaya', icon: Award },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = directoryTab === tab.id;
@@ -900,6 +780,11 @@ export function BankAdvisorView() {
                         <span className="px-2 py-0.2 rounded-md bg-muted font-mono text-[10px] text-muted-foreground font-semibold border border-border/60">
                           {scheme.creditRating}
                         </span>
+                        {scheme.featuredBadge && (
+                          <span className="px-2 py-0.2 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 font-semibold text-[10px] border border-amber-500/20">
+                            {scheme.featuredBadge}
+                          </span>
+                        )}
                         {scheme.isIslamic && (
                           <span className="px-2 py-0.2 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold text-[10px] border border-emerald-500/20">
                             Islamic
@@ -1020,26 +905,5 @@ export function BankAdvisorView() {
         </div>
       </section>
     </div>
-  );
-}
-
-function LayersIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <polygon points="12 2 2 7 12 12 22 7 12 2" />
-      <polyline points="2 17 12 22 22 17" />
-      <polyline points="2 12 12 17 22 12" />
-    </svg>
   );
 }

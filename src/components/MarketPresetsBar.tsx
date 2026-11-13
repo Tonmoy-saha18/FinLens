@@ -146,10 +146,11 @@ export function MarketPresetsBar({ onSelectPreset, activePresetId }: MarketPrese
         <button
           type="button"
           onClick={() => setActiveView('advisor')}
-          className="flex items-center gap-1 text-xs font-bold text-primary hover:underline px-2 py-1 ml-1"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-primary bg-primary/10 hover:bg-primary/20 border border-primary/25 transition-all sm:ml-auto shrink-0 shadow-sm"
           title="View comprehensive bank rates and smart recommendations"
         >
-          <span>All Bank Rates</span>
+          <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+          <span>All Bank Rates & Advisor</span>
           <ArrowRight className="h-3.5 w-3.5" />
         </button>
       </div>
