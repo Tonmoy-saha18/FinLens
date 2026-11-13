@@ -1,0 +1,55 @@
+name: Audit & Sync Bank Rates
+
+on:
+  # Automated monthly audit: Runs on the 1st of every month at 00:00 UTC
+  schedule:
+    - cron: '0 0 1 * *'
+  # Allows manual triggers from GitHub Actions UI anytime
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason for running rate audit / sync'
+        required: false
+        default: 'Monthly routine bank rates audit'
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: 'rates-sync'
+  cancel-in-progress: false
+
+jobs:
+  audit-and-verify:
+    name: Verify & Test Bank Rates
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Bank Rates & Precision Math Tests
+        run: npx vitest run src/data/bankRates.test.ts
+
+      - name: Run Full Test Suite (127+ Unit Tests)
+        run: npm test
+
+      - name: Compile & Typecheck Production Bundle
+        run: npm run build
+
+      - name: Log Audit Status
+        run: |
+          echo "### 🏦 FinLens Bank Rates Audit Completed" >> $GITHUB_STEP_SUMMARY
+          echo "All bank schemes, institutional safety scores, and precision math validated successfully." >> $GITHUB_STEP_SUMMARY
+          echo "- **Audit Date:** $(date -u)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Trigger:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY

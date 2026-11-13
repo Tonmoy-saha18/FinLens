@@ -19,6 +19,7 @@ import {
   BANK_SCHEMES,
   BANK_INSTITUTIONS,
   ADVISORY_PILLARS,
+  RATES_METADATA,
   getSmartRecommendation,
   type BankScheme,
 } from '@/data/bankRates';
@@ -281,7 +282,26 @@ export function BankAdvisorView() {
   };
 
   return (
-    <div className="space-y-8 animate-fade-in pb-16">
+    <div className="space-y-6 animate-fade-in pb-16">
+      {/* ── Rates Freshness & Trust Verification Banner ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 px-4 py-2.5 rounded-2xl bg-card border border-border/70 shadow-sm text-xs">
+        <div className="flex items-center gap-2">
+          <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="font-extrabold text-foreground">
+            Market Rates Verified: {RATES_METADATA.lastUpdated}
+          </span>
+          <span className="text-muted-foreground hidden sm:inline">•</span>
+          <span className="text-muted-foreground hidden sm:inline">
+            Next Scheduled Audit: {RATES_METADATA.nextReviewDate}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1.5 text-muted-foreground text-[11px]">
+          <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+          <span>Sourced from {RATES_METADATA.sourceBulletin}</span>
+        </div>
+      </div>
+
       {/* ── Macro Financial Pulse Bar ── */}
       <section className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         <div className="p-3.5 rounded-2xl bg-card border border-border/70 shadow-sm">

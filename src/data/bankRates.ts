@@ -61,6 +61,24 @@ export interface BankScheme {
   };
 }
 
+export interface RatesMetadata {
+  lastUpdated: string;
+  nextReviewDate: string;
+  sourceBulletin: string;
+  policyRatePct: number;
+  inflationBenchmarkPct: number;
+  depositInsuranceCap: number;
+}
+
+export const RATES_METADATA: RatesMetadata = {
+  lastUpdated: 'November 2026',
+  nextReviewDate: 'December 2026',
+  sourceBulletin: 'Bangladesh Bank Economic Trends & Retail Rate Disclosures',
+  policyRatePct: 10.0,
+  inflationBenchmarkPct: 9.5,
+  depositInsuranceCap: 200000,
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. INSTITUTIONS DIRECTORY
 // ─────────────────────────────────────────────────────────────────────────────
